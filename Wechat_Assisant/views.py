@@ -15,7 +15,7 @@ import base64
 from multiprocessing import Process
 
 # Create your views here.
-def run_assisant(assisant, openid, unionid):
+def run_assisant(assisant):
     print("check assisant login status")
     logined = assisant.check_login()
     if logined:
@@ -24,18 +24,14 @@ def run_assisant(assisant, openid, unionid):
 
 def login(request):
     print("login request")
-    p = request.GET;
-    openid = p.get('openid')
-    unionid = p.get('unionid')
-    if openid != None and unionid != None:
-        print("get QR")
-        assisant = Assisant()
-        qr_code = assisant.get_QR()
-        response = {}
-        response['type'] = 'img'
-        response['data'] = base64.b64encode(qr_code.getvalue())
-        print("fork")
-        p = Process(target=run_assisant, args=(assisant, openid, unionid, ))
-        p.daemon = True
-        p.start()
+    print("get uuid")
+    assisant = Assisant()
+    uuid = assisant.get_QRuuid()
+    response = {}
+    response['type'] = 'uuid'
+    response['uuid'] = uuid
+    print("fork")
+    p = Process(target=run_assisant, args=(assisant, ))
+    p.daemon = True
+    p.start()
     return JsonResponse(response)

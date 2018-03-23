@@ -37,10 +37,8 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
         logger.warning('itchat has already logged in.')
         return
     self.isLogging = True
-    print('itchat login')
     while self.isLogging:
         uuid = push_login(self)
-        print('get uuid')
         if uuid:
             qrStorage = io.BytesIO()
         else:
@@ -49,7 +47,6 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
                 time.sleep(1)
             logger.info('Downloading QR code.')
             qrStorage = self.get_QR()
-            print('got uuid')
             if hasattr(qrCallback, '__call__'):
                 if 's_qr_dict' in extra_dict.keys():
                     qr_dict = extra_dict['s_qr_dict'];
@@ -295,11 +292,10 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                     self.alive = False
                 else:
                     time.sleep(1)
-        self.logout()
         if hasattr(exitCallback, '__call__'):
             exitCallback()
-        else:
-            logger.info('LOG OUT!')
+        self.logout()
+        logger.info('LOG OUT!')
     if getReceivingFnOnly:
         return maintain_loop
     else:

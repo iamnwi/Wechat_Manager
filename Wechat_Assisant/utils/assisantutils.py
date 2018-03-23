@@ -12,21 +12,15 @@ from site_package import itchat
 from site_package.itchat.content import *
 from Wechat_Assisant.models import *
 
-def get_msg_by_id(msg_id):
-	msg = None
-	msg_qs = Message.objects.filter(msg_id=msg_id)
-	if msg_qs.count() == 1:
-		msg = msg_qs.get(msg_id=msg_id)
-	return msg
-
-def get_nick_name(user_name):
-	nick_name = None
-	user_qs = WechatClient.objects.filter(user_name=user_name)
-	print("query set count = %d", user_qs.count())
-	if user_qs.count() == 1:
-		nick_name = user_qs.get(user_name=user_name).nick_name
-	print("[get nick name]passed in user name = %s, his/her nick name = %s" % (user_name, nick_name))
-	return nick_name
+def turn_offline():
+	uin = (itchat.search_friends())['Uin']
+	wc = get_wc(uin=uin)
+	if wc:
+		wc.online = False
+		wc.save()
+		print("[turn_offline] client(uid=%s) turn offline successfully" % (wc.uin))
+		return True
+	return False
 
 #收到note类消息，判断是不是撤回并进行相应操作
 def note_handler(msg):
@@ -34,7 +28,7 @@ def note_handler(msg):
 		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content'].encode('utf8')) != None \
 		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^you]*recalled a message\.\]\]\>\<\/replacemsg\>", msg['Content']) != None:
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
-		revoked_msg = get_msg_by_id(revoked_msg_id)
+		revoked_msg = get_msg(msg_id=revoked_msg_id)
 		showntime = time.ctime(int(revoked_msg.msg_time))
 		from_nick_name = itchat.search_friends(userName=msg['FromUserName'])['NickName']
 
@@ -74,69 +68,12 @@ def msg_handler(msg):
 		return
 
 	print('%s received a msg' % get_nick_name(msg['ToUserName']))
-	print(msg)
+	# print(msg)
 
-	# get localtime and convert it into a user-friendly format coz it will be shown to a user
-	mytime = time.localtime()
-	msgTimeToUser = mytime.tm_year.__str__() \
-                      + "/" + mytime.tm_mon.__str__() \
-                      + "/" + mytime.tm_mday.__str__() \
-                      + " " + mytime.tm_hour.__str__() \
-                      + ":" + mytime.tm_min.__str__() \
-                      + ":" + mytime.tm_sec.__str__()
-
-	msgId = msg['MsgId'] # id
-	msgTime = msg['CreateTime'] # time
-	msgFrom = msg['FromUserName']
-	msgTo = msg['ToUserName']
-	msgType = msg['Type'] # type
-	msgText = '' # for plain msg
-	msgBin = '' # for binary msg (e.g. photo, file, recording...)
-	msgUrl = '' # a sharing msg has a url
-
-	if msg['Type'] == 'Text':
-		msgText = msg['Text']
-
-	# elif msg['Type'] == 'Picture':
-	# 	msgContent = r"./ReceivedMsg/Picture/" + msg['FileName']
-	# 	msg['Text'](msgContent)
-
-	# elif msg['Type'] == 'Card':
-	# 	msgContent = msg['RecommendInfo']['NickName'] + r" 的名片"
-
-	elif msg['Type'] == 'Map':
-		x, y, location = \
-			re.search("<location x=\"(.*?)\" y=\"(.*?)\".*label=\"(.*?)\".*", msg['OriContent']).group(1, 2, 3)
-		if location is None:
-			msgText = r"纬度->" + x.__str__() + " 经度->" + y.__str__()
-		else:
-			msgText = r"" + location
-
-	elif msg['Type'] == 'Sharing':
-		msgText = msg['Text']
-		msgUrl = msg['Url']
-    #
-	# elif msg['Type'] == 'Recording':
-	# 	msgContent = r"./ReceivedMsg/Recording/" + msg['FileName']
-	# 	msg['Text'](msgContent)
-    #
-	# elif msg['Type'] == 'Attachment':
-	# 	msgContent = r"./ReceivedMsg/Attachment/" + msg['FileName']
-	# 	msg['Text'](msgContent)
-    #
-	# elif msg['Type'] == 'Video':
-	# 	msgContent = r"./ReceivedMsg/Video/" + msg['FileName']
-	# 	msg['Text'](msgContent)
-
-	elif msg['Type'] == 'Friends':
-		msgText = msg['Text']
-
-	elif msg['Type'] == 'Note':
+	if msg['Type'] == 'Note':
 		note_handler(msg)
 		return
 
 	# insert this msg to DB
-	msg_obj = Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
-						msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
-						msg_text=msgText, msg_bin=msgBin, msg_json=msg)
+	msg_obj = Message.create(msg);
 	msg_obj.save()
