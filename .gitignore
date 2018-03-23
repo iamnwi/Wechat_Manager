@@ -1,0 +1,8 @@
+# for mac
+*.DS_Store
+
+# for python
+*.pyc
+
+# for Django
+Wechat_Assisant/migrations
