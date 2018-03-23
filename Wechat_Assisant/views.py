@@ -17,6 +17,9 @@ from multiprocessing import Process
 # Create your views here.
 def run_assisant(assisant):
     print("check assisant login status")
+    print("sleep")
+    time.sleep(1)
+    print("wake up")
     logined = assisant.check_login()
     if logined:
         print("logined! run...")
@@ -35,3 +38,6 @@ def login(request):
     p.daemon = True
     p.start()
     return JsonResponse(response)
+
+def index(request):
+    return render(request, 'index.html', {})

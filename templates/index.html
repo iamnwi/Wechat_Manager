@@ -1,0 +1,60 @@
+<!DOCTYPE HTML>
+<html>
+
+<head>
+
+  <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
+  <script src="http://cdn.rawgit.com/jeromeetienne/jquery-qrcode/master/jquery.qrcode.min.js"></script>
+  <script type="text/javascript">
+
+    function addElement(id, obj) {
+　　　　var parent = document.getElementById(id);
+　　　　parent.appendChild(obj);
+　　}
+
+    function login() {
+      // var url = "http://127.0.0.1:8000/Wechat_Assisant/login";
+      var url = "http://60.205.223.152/Wechat_Assisant/login";
+      fetch(url, {
+        headers: {
+          'user-agent': 'Mozilla/4.0 MDN Example',
+          'content-type': 'application/json'
+        },
+        method: 'GET',
+      })
+      .then(function(response) {
+        console.log(response.headers)
+        return response.json();
+      })
+      .then(function(data) {
+        console.log(data);
+        if (data.type == "uuid") {
+          console.log("uuid = " + data.uuid)
+          var text = "https://login.weixin.qq.com/l/" + data.uuid;
+          jQuery('#qrcode_div').qrcode({width: 256,
+                                    height: 256,
+                                    text: text});
+        }
+      });
+    }
+
+
+    $(document).ready(function() {
+      $("#btn_login").click(function() {login()});
+    });
+
+  </script>
+
+</head>
+
+<body>
+
+  <div id="qrcode_div">
+  </div>
+  <div id="button_div">
+    <button id="btn_login">Login Web Wechat</button>
+  </div>
+
+</body>
+
+</html>
