@@ -8,8 +8,8 @@ import requests
 import json
 import random
 
-from site_package import itchat
-from site_package.itchat.content import *
+from .site_package import itchat
+from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
 
 def turn_offline():
@@ -68,7 +68,6 @@ def msg_handler(msg):
 		return
 
 	print('%s received a msg' % get_nick_name(msg['ToUserName']))
-	# print(msg)
 
 	if msg['Type'] == 'Note':
 		note_handler(msg)

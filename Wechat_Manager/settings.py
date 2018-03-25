@@ -31,6 +31,7 @@ ALLOWED_HOSTS = []
 # Application definition
 
 INSTALLED_APPS = [
+    'channels',
     'corsheaders',
     'Wechat_Assisant.apps.WechatAssisantConfig',
     'django.contrib.admin',
@@ -147,3 +148,6 @@ CORS_ALLOW_HEADERS = (
     'authorization',
     'x-csrftoken',
 )
+
+# Channels
+ASGI_APPLICATION = 'Wechat_Manager.routing.application'
