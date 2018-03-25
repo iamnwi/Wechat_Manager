@@ -23,7 +23,7 @@ class Message(models.Model):
     msg_text = models.TextField(blank=True)
     msg_bin = models.BinaryField(blank=True)
     msg_json = models.TextField(blank=False)
-    msg_uin = models.CharField(max_length=200, blank=False)
+    msg_uin = models.CharField(max_length=200, blank=False, default='')
 
     @classmethod
     def create(Message, msg):
