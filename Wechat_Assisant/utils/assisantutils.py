@@ -8,8 +8,8 @@ import requests
 import json
 import random
 
-from site_package import itchat
-from site_package.itchat.content import *
+from .site_package import itchat
+from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
 
 def turn_offline():
@@ -24,8 +24,8 @@ def turn_offline():
 
 #收到note类消息，判断是不是撤回并进行相应操作
 def note_handler(msg):
-	if re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*撤回了一条消息\]\]\>\<\/replacemsg\>", msg['Content'].encode('utf8')) != None \
-		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content'].encode('utf8')) != None \
+	if re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*撤回了一条消息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
+		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
 		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^you]*recalled a message\.\]\]\>\<\/replacemsg\>", msg['Content']) != None:
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
@@ -68,7 +68,6 @@ def msg_handler(msg):
 		return
 
 	print('%s received a msg' % get_nick_name(msg['ToUserName']))
-	# print(msg)
 
 	if msg['Type'] == 'Note':
 		note_handler(msg)

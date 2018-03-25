@@ -25,13 +25,14 @@ SECRET_KEY = 'cpwqfx$t!-s9kx2gjajt80o9mc@-*@%!q3i$$r6(()ako^3b@r'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['60.205.223.152']
 
 
 # Application definition
 
 INSTALLED_APPS = [
-    'corsheaders',
+    'channels',
+#    'corsheaders',
     'Wechat_Assisant.apps.WechatAssisantConfig',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -42,8 +43,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.common.CommonMiddleware',
+#    'corsheaders.middleware.CorsMiddleware',
+#    'django.middleware.common.CommonMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -124,26 +125,29 @@ USE_TZ = True
 STATIC_URL = '/static/'
 
 # FOR CORS
-CORS_ORIGIN_ALLOW_ALL = True
+#CORS_ORIGIN_ALLOW_ALL = True
 
-CORS_ORIGIN_WHITELIST = (
-    'http://127.0.0.1',
-)
+#CORS_ORIGIN_WHITELIST = (
+#    'http://127.0.0.1',
+#)
 
-CORS_ALLOW_METHODS = (
-    'GET',
-    'POST',
-    'PUT',
-    'PATCH',
-    'DELETE',
-    'OPTIONS',
-)
+#CORS_ALLOW_METHODS = (
+#    'GET',
+#    'POST',
+#    'PUT',
+#    'PATCH',
+#    'DELETE',
+#    'OPTIONS',
+#)
 
-CORS_ALLOW_HEADERS = (
-    'x-requested-with',
-    'content-type',
-    'accept',
-    'origin',
-    'authorization',
-    'x-csrftoken',
-)
+#CORS_ALLOW_HEADERS = (
+#    'x-requested-with',
+#    'content-type',
+#    'accept',
+#    'origin',
+#    'authorization',
+#    'x-csrftoken',
+#)
+
+# Channels
+ASGI_APPLICATION = 'Wechat_Manager.routing.application'

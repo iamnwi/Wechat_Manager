@@ -8,10 +8,9 @@ import requests
 import json
 
 # my itchat
-from site_package import itchat
-from site_package.itchat.content import *
-from cache import *
-from assisantutils import *
+from .site_package import itchat
+from .site_package.itchat.content import *
+from .assisantutils import *
 from Wechat_Assisant.models import *
 
 class Assisant():
