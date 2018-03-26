@@ -19,7 +19,7 @@ class Message(models.Model):
     msg_time = models.CharField(max_length=50, blank=False)
     msg_from = models.CharField(max_length=100, blank=False)
     msg_to = models.CharField(max_length=100, blank=False)
-    msg_url = models.CharField(max_length=100, blank=True)
+    msg_url = models.CharField(max_length=500, blank=True)
     msg_text = models.TextField(blank=True)
     msg_bin = models.BinaryField(blank=True)
     msg_json = models.TextField(blank=False)
@@ -34,17 +34,23 @@ class Message(models.Model):
         msgType = msg['Type'] # type
         msgText = None # for plain msg
         msgBin = None # for binary msg (e.g. photo, file, recording...)
+        subfilename = ''
         msgUrl = '' # a sharing msg has a url
+        is_bin = False
 
         if msg['Type'] == 'Text':
             msgText = msg['Text']
 
-        # elif msg['Type'] == 'Picture':
-        #     msgContent = r"./ReceivedMsg/Picture/" + msg['FileName']
-        #     msg['Text'](msgContent)
+        elif msg['Type'] == 'Picture' or \
+            msg['Type'] == 'Recording' or \
+            msg['Type'] == 'Attachment' or \
+            msg['Type'] == 'Video':
+            msgBin = msg['Text']()
+            msgText = msg['FileName']
+            is_bin = True
 
-        # elif msg['Type'] == 'Card':
-        #     msgContent = msg['RecommendInfo']['NickName'] + r" 的名片"
+        elif msg['Type'] == 'Card':
+            msgText = msg['RecommendInfo']['NickName'] + r" 的名片"
 
         elif msg['Type'] == 'Map':
             x, y, location = \
@@ -57,18 +63,7 @@ class Message(models.Model):
         elif msg['Type'] == 'Sharing':
             msgText = msg['Text']
             msgUrl = msg['Url']
-        #
-        # elif msg['Type'] == 'Recording':
-        #     msgContent = r"./ReceivedMsg/Recording/" + msg['FileName']
-        #     msg['Text'](msgContent)
-        #
-        # elif msg['Type'] == 'Attachment':
-        #     msgContent = r"./ReceivedMsg/Attachment/" + msg['FileName']
-        #     msg['Text'](msgContent)
-        #
-        # elif msg['Type'] == 'Video':
-        #     msgContent = r"./ReceivedMsg/Video/" + msg['FileName']
-        #     msg['Text'](msgContent)
+            print("url: %s" % msgUrl)
 
         elif msg['Type'] == 'Friends':
             msgText = msg['Text']
@@ -77,14 +72,17 @@ class Message(models.Model):
         to_wc = get_wc(user_name=msgTo)
         msgUin = to_wc.uin
 
-        if msgText:
+        if not is_bin:
+            print('text msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
                             msg_text=msgText, msg_json=msg, msg_uin=msgUin)
-        elif msgBin:
+        else:
+            print('bin msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
-                            msg_bin=msgBin, msg_json=msg, msg_uin=msgUin)
+                            msg_bin=msgBin, msg_json=msg, msg_uin=msgUin, \
+                            msg_text=msgText)
 
     def __str__(self):
         to_wc = get_wc(uin=self.msg_uin)
