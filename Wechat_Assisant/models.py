@@ -16,19 +16,23 @@ class WechatClient(models.Model):
 class Message(models.Model):
     msg_id = models.CharField(max_length=200, blank=False)
     msg_type = models.CharField(max_length=10, blank=False)
-    msg_time = models.CharField(max_length=50, blank=False)
-    msg_from = models.CharField(max_length=100, blank=False)
-    msg_to = models.CharField(max_length=100, blank=False)
+    msg_time = models.IntegerField(blank=False)
+    msg_from = models.CharField(max_length=100, blank=True)
+    msg_to = models.CharField(max_length=100, blank=True)
     msg_url = models.CharField(max_length=500, blank=True)
     msg_text = models.TextField(blank=True)
     msg_bin = models.BinaryField(blank=True)
     msg_json = models.TextField(blank=False)
     msg_uin = models.CharField(max_length=200, blank=False, default='')
+    msg_is_group = models.BooleanField(default=False)
+    group_name = models.CharField(max_length=200, blank=True)
+    sender_user_name = models.CharField(max_length=200, blank=True)
+    sender_nick_name = models.CharField(max_length=200, blank=True)
 
     @classmethod
-    def create(Message, msg):
+    def create(Message, msg, is_group=False):
         msgId = msg['MsgId'] # id
-        msgTime = msg['CreateTime'] # time
+        msgTime = int(msg['CreateTime']) # time
         msgFrom = msg['FromUserName']
         msgTo = msg['ToUserName']
         msgType = msg['Type'] # type
@@ -72,30 +76,69 @@ class Message(models.Model):
         to_wc = get_wc(user_name=msgTo)
         msgUin = to_wc.uin
 
+        group_name = ''
+        s_user_name = ''
+        s_nick_name = ''
+        if is_group:
+            group_name = msg['FromUserName']
+            s_user_name = msg['ActualUserName']
+            s_nick_name = msg['ActualNickName']
+
         if not is_bin:
             print('text msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
-                            msg_text=msgText, msg_json=msg, msg_uin=msgUin)
+                            msg_text=msgText, msg_json=msg, msg_uin=msgUin, \
+                            msg_is_group=is_group, group_name=group_name, \
+                            sender_user_name=s_user_name, sender_nick_name=s_nick_name)
         else:
             print('bin msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
                             msg_bin=msgBin, msg_json=msg, msg_uin=msgUin, \
-                            msg_text=msgText)
+                            msg_text=msgText, \
+                            msg_is_group=is_group, group_name=group_name, \
+                            sender_user_name=s_user_name, sender_nick_name=s_nick_name)
 
     def __str__(self):
-        to_wc = get_wc(uin=self.msg_uin)
-        to_nick = to_wc.nick_name
-
-        if self.msg_type == 'Text' or self.msg_type == 'Sharing':
-            content = self.msg_text
+        if self.msg_is_group:
+            group = get_group(name=self.group_name)
+            return ("group:%s, sender:%s, type:%s" % (group.nick_name, self.sender_nick_name, self.msg_type))
         else:
-            content = 'BIN'
-        return ("id:%s, to:%s, content:%s" % (self.msg_id, to_nick, content))
-        return ("id:%s" % self.msg_id)
+            to_wc = get_wc(uin=self.msg_uin)
+            to_nick = to_wc.nick_name
+            return ("id:%s, to:%s, type:%s" % (self.msg_id, to_nick, self.msg_type))
+
+class Group(models.Model):
+    name = models.CharField(max_length=200)
+    nick_name = models.CharField(max_length=200)
+
+    def __str__(self):
+        return ("id:%s, name:%s" % (self.name, self.nick_name))
+
+class NotifyMessage(models.Model):
+    to_user_name = models.CharField(max_length=200, blank=False)
+    group_name = models.CharField(max_length=200, blank=False)
+    msg_time = models.IntegerField(blank=False)
+
+    def __str__(self):
+        return ("to:%s, group:%s" % (self.to_user_name, self.group_name))
 
 # DB operation tool functions
+def get_group(name=None, nick_name=None):
+    if not (name==None and nick_name==None):
+        if name:
+            group = Group.objects.get(name=name)
+        elif nick_name:
+            group = Group.objects.get(nick_name=nick_name)
+        print("[get Group] name = %s, nick_name = %s" % (name, nick_name))
+        return group
+
+def get_group_nick_name(group_name):
+    group = get_group(name=group_name)
+    if group:
+        return group.nick_name
+
 def get_wc(uin=None, user_name=None):
     if not (uin==None and user_name==None):
         if uin:
