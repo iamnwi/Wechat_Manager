@@ -29,10 +29,12 @@
         if (data['type'] == "uuid") {
           console.log("uuid = " + data['uuid'])
           var text = "https://login.weixin.qq.com/l/" + data['uuid'];
-          jQuery('#qrcode_div').qrcode({
-            width: 256,
-            height: 256,
-            text: text
+          jQuery(function() {
+              $('#qrcode_div').qrcode({
+                width: 256,
+                height: 256,
+                text: text
+              });
           });
           var canvas = $('#qrcode_div canvas');
           console.log(canvas);

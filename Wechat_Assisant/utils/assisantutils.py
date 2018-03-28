@@ -3,12 +3,36 @@ import os, time, re, io, sys, shutil
 import requests
 import json
 import tempfile
+import speech_recognition as sr
+from pydub import AudioSegment
 
 from .site_package import itchat
 from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
 
 sendFilePrefixDict = {'Attachment': '@fil@', 'Picture': '@img@', 'Video': '@vid@'}
+
+def get_google_credentials():
+	secrete_dir = '/Users/ngwaii/Desktop/GraduationDesign/2017/Wechat_Manager/Wechat_Manager/secrete/'
+	with open(secrete_dir + 'GOOGLE_CLOUD_SPEECH_CREDENTIALS', 'r') as f:
+		s = f.read()
+		return s
+
+def audio2text(AUDIO_FILE):
+    # use the audio file as the audio source
+	r = sr.Recognizer()
+	with sr.AudioFile(AUDIO_FILE) as source:
+		audio = r.record(source)  # read the entire audio file
+
+    # recognize speech using Google Cloud Speech
+	GOOGLE_CLOUD_SPEECH_CREDENTIALS = get_google_credentials()
+	try:
+		result = r.recognize_google_cloud(audio, language="zh-CN", credentials_json=GOOGLE_CLOUD_SPEECH_CREDENTIALS)
+	except sr.UnknownValueError:
+		result = "Google Cloud Speech could not understand audio"
+	except sr.RequestError as e:
+		result = "Could not request results from Google Cloud Speech service; {0}".format(e)
+	return result
 
 def get_group_notify_context(notify_msg):
 	returnList = []
@@ -19,20 +43,29 @@ def get_group_notify_context(notify_msg):
 	end = msg_time + 60
 	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
 											msg_to=to_user_name, msg_time__range=(start, end))
+	# concatenate messages, converting recording to text
 	if group_msg_qs.count() > 0:
 		group_nick_name = get_group_nick_name(notify_msg.group_name)
 		send_text = u'您在群聊 "'+ group_nick_name + u'" 中收到和您有关的消息：\n'
-		# concatenate messages, converting recording to text
-		print("group msg qs:")
-		print(group_msg_qs)
+		has_bin = False
 		for msg in group_msg_qs.iterator():
 			if msg.msg_type == 'Recording':
-				content = '[Recording]'
+				has_bin = True
+				result = ''
+				with tempfile.NamedTemporaryFile() as tmp:
+					audio = io.BytesIO(msg.msg_bin)
+					AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
+					result = audio2text(tmp.name)
+					print("group recording ASR result:" + result)
+				content = result + '[转文字]'
 			elif msg.msg_type == 'Picture':
+				has_bin = True
 				content = '[Picture]'
 			elif msg.msg_type == 'Text':
 				content = msg.msg_text
 			send_text += msg.sender_nick_name + u': ' + content + u'\n'
+		if has_bin:
+			send_text += u"\n(以上包含语音转文字后的结果，如有需要请到群內查看)"
 		returnList.append(send_text)
 	return returnList
 
@@ -146,10 +179,13 @@ def note_handler(msg):
 				msg_send += u' （原文件名为 ' + revoked_msg.msg_text + u'）'
 		elif revoked_msg.msg_type == 'Recording':
 			is_bin_msg = True
-			# result = audio2text(convert(oldMsg['msgContent'], "./RevokedMsg/converted/"+audioFileName+".wav"))
-			# print("ASR result:" + result)
-			# msg_send += u'\n' + result
-			# msg_send += u"\n 以上语音转文字后的结果，如有需要请查听 ./RevokedMsg/" + audioFileName
+			with tempfile.NamedTemporaryFile() as tmp:
+				audio = io.BytesIO(revoked_msg.msg_bin)
+				AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
+				result = audio2text(tmp.name)
+				print("ASR result:" + result)
+				msg_send += u'\n' + result
+				msg_send += u"\n(以上语音转文字后的结果，如有需要请查听以下的语音档)"
 			sendMsgPrefix = sendFilePrefixDict['Attachment']
 		else:
 			msg_send += u"Error: Unsupported Type!"
