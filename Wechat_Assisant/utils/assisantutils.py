@@ -17,7 +17,8 @@ def get_group_notify_context(notify_msg):
 	msg_time = notify_msg.msg_time
 	start = msg_time - 60
 	end = msg_time + 60
-	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, msg_time__range=(start, end))
+	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
+											msg_to=to_user_name, msg_time__range=(start, end))
 	if group_msg_qs.count() > 0:
 		group_nick_name = get_group_nick_name(notify_msg.group_name)
 		send_text = u'您在群聊 "'+ group_nick_name + u'" 中收到和您有关的消息：\n'
@@ -32,7 +33,6 @@ def get_group_notify_context(notify_msg):
 			elif msg.msg_type == 'Text':
 				content = msg.msg_text
 			send_text += msg.sender_nick_name + u': ' + content + u'\n'
-		send_text += u'---------------------------'
 		returnList.append(send_text)
 	return returnList
 
