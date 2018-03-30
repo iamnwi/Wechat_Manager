@@ -6,12 +6,16 @@ import os
 import shutil
 import requests
 import json
+import logging
 
 # my itchat
 from .site_package import itchat
 from .site_package.itchat.content import *
 from .assisantutils import *
 from Wechat_Assisant.models import *
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 class Assisant():
     def __init__(self):
@@ -22,7 +26,7 @@ class Assisant():
         uin = (itchat.search_friends())['Uin']
         user_name = (itchat.search_friends())['UserName']
         nick_name = (itchat.search_friends())['NickName']
-        print("login info: uin=%s, NickName=%s" % (uin, nick_name));
+        logger.info("login info: uin=%s, NickName=%s" % (uin, nick_name));
         client_qs = WechatClient.objects.filter(uin=uin)
         if client_qs.count() == 0:
             wc = WechatClient(uin=uin, user_name=user_name, nick_name=nick_name, online=True)
@@ -39,12 +43,10 @@ class Assisant():
         itchat.run()
 
     def get_QRuuid(self):
-        print('Getting uuid of QR code.')
         self.uuid = itchat.get_QRuuid()
         return self.uuid
 
     def check_login(self):
-        print('checking login status')
         isLoggedIn = False
         while not isLoggedIn:
             status = itchat.check_login(self.uuid)
@@ -52,12 +54,12 @@ class Assisant():
                 isLoggedIn = True
             elif status == '201':
                 if isLoggedIn is not None:
-                    print('Please press confirm on your phone.')
+                    logger.info('(uuid:%s)Please press confirm on your phone.' % self.uuid)
                     isLoggedIn = None
             else:
                 break
         if isLoggedIn:
             return True
         else:
-            print('Log in time out, reloading QR code.')
+            logger.info('(uuid:%s)Log in time out, reloading QR code.' % self.uuid)
             return False

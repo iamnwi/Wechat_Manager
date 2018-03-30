@@ -3,12 +3,18 @@ import os, time, re, io, sys, shutil
 import requests
 import json
 import tempfile
+import logging
+
+# ASR
 import speech_recognition as sr
 from pydub import AudioSegment
 
 from .site_package import itchat
 from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
+
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
 
 sendFilePrefixDict = {'Attachment': '@fil@', 'Picture': '@img@', 'Video': '@vid@'}
 
@@ -56,7 +62,7 @@ def get_group_notify_context(notify_msg):
 					audio = io.BytesIO(msg.msg_bin)
 					AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
 					result = audio2text(tmp.name)
-					print("group recording ASR result:" + result)
+					logger.info("group recording ASR result:" + result)
 				content = result + '[转文字]'
 			elif msg.msg_type == 'Picture':
 				has_bin = True
@@ -71,7 +77,7 @@ def get_group_notify_context(notify_msg):
 
 # send all groups' notify messages to filehelper
 def assisant_send_group_notify(user_name):
-	print("Send group notify messages to filehelper")
+	logger.info("Send group notify messages to filehelper")
 	notify_msg_qs = NotifyMessage.objects.filter(to_user_name=user_name)
 	if notify_msg_qs.count()==0:
 		itchat.send(u'没有提及你的群消息', toUserName='filehelper')
@@ -88,21 +94,21 @@ def assisant_send_group_notify(user_name):
 # trigger different assisant functions according to the msg content
 def assisant_control_menue(msg):
 	msg_from = msg['FromUserName']
-	print('robot control')
+	logger.info('received a robot control message')
 	if msg['Type'] == 'Text':
 		msgContent = msg['Text']
 		if msgContent == '@':
 			assisant_send_group_notify(msg_from)
 		else:
-			print('It is an unsupported control message.')
+			logger.info('It is an unsupported control message.')
 	else:
-		print('It is an unsupported type of control message.')
+		logger.info('It is an unsupported type of control message.')
 
 # find display name to the specific user in the group where the message comes from.
 def get_display_name_group(msg, user_name):
 	member_content = re.search(r"<ContactList: \[<ChatroomMember: \{(.*)\}>]>", str(msg))
 	if member_content != None:
-		print(member_content.group(1))
+		logger.info(member_content.group(1))
 		users = re.findall(r"'UserName': '([^']*)", member_content.group(1))
 		displays = re.findall(r"'DisplayName': '([^']*)", member_content.group(1))
 		if users != None and displays != None:
@@ -118,7 +124,7 @@ def get_display_name_group(msg, user_name):
 def check_group_notify(msg, group_name):
 	if not msg['Type']=='Text':
 		return False
-	print('checkGroupNotify')
+	logger.info('checkGroupNotify')
 	msg_content = msg['Content']
 	if '@' in msg_content:
 		if u'@所有人' in msg_content or\
@@ -130,7 +136,7 @@ def check_group_notify(msg, group_name):
 			if u'@'+nick_name in msg_content:
 				return True
 			display_name = get_display_name_group(msg, user_name)
-			print("your display name is %s" % display_name)
+			logger.info("your display name is %s" % display_name)
 			if display_name != None and '@' + display_name in msg_content:
 				return True
 	else:
@@ -145,7 +151,7 @@ def turn_offline():
 	if wc:
 		wc.online = False
 		wc.save()
-		print("[turn_offline] client(uid=%s) turn offline successfully" % (wc.uin))
+		logger.info("[turn_offline] client(uid=%s) turn offline successfully" % (wc.uin))
 		return True
 	return False
 
@@ -159,7 +165,7 @@ def note_handler(msg):
 		showntime = time.ctime(int(revoked_msg.msg_time))
 		from_nick_name = itchat.search_friends(userName=msg['FromUserName'])['NickName']
 
-		print("%s revoked a msg: %s" % (from_nick_name, revoked_msg.msg_type))
+		logger.info("%s revoked a msg: %s" % (from_nick_name, revoked_msg.msg_type))
 		msg_send = u"您的好友：" \
 				   + from_nick_name \
 				   + u"  在 [" + showntime \
@@ -183,7 +189,7 @@ def note_handler(msg):
 				audio = io.BytesIO(revoked_msg.msg_bin)
 				AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
 				result = audio2text(tmp.name)
-				print("ASR result:" + result)
+				logger.info("ASR result:" + result)
 				msg_send += u'\n' + result
 				msg_send += u"\n(以上语音转文字后的结果，如有需要请查听以下的语音档)"
 			sendMsgPrefix = sendFilePrefixDict['Attachment']
@@ -201,7 +207,7 @@ def note_handler(msg):
 				os.rename(tmp.name, newPath)
 				r = itchat.send('%s%s' % (sendMsgPrefix, newPath), toUserName='filehelper')
 				os.rename(newPath, tmp.name)
-				print(r)
+				logger.info(r)
 
 #将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
 #没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
@@ -222,7 +228,7 @@ def msg_handler(msg):
 	if WechatClient.objects.filter(user_name=msg['ToUserName']).count() == 0:
 		return
 
-	print('%s received a msg' % get_nick_name(msg['ToUserName']))
+	logger.info('%s received a msg' % get_nick_name(msg['ToUserName']))
 
 	if msg['Type'] == 'Note':
 		note_handler(msg)
@@ -239,7 +245,7 @@ def msg_handler(msg):
 # 		2. How can we identical different groups? now a group will create a new model after users login again
 @itchat.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
 def HandleGroupMsg(msg):
-	print('%s received a group msg' % get_nick_name(msg['ToUserName']))
+	logger.info('%s received a group msg' % get_nick_name(msg['ToUserName']))
 
 	# initial a group or update nick name of a gorup
 	group_name = msg['FromUserName']
@@ -263,4 +269,4 @@ def HandleGroupMsg(msg):
 		msg_time = msg['CreateTime']
 		notify_msg = NotifyMessage(to_user_name=to_user_name, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
-		print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
+		logger.info('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
