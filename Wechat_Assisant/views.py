@@ -10,32 +10,37 @@ from .utils.assisant import Assisant
 
 import time
 import base64
+import hashlib
+import logging
 
 # mp
 from multiprocessing import Process
 
+# Get an instance of a logger
+logger = logging.getLogger(__name__)
+
 # Create your views here.
-
-# def run_assisant(assisant):
-#     print("check assisant login status")
-#     logined = assisant.check_login()
-#     if logined:
-#         print("logined! run...")
-#         assisant.run()
-#
-# def login(request):
-#     print("login request")
-#     print("get uuid")
-#     assisant = Assisant()
-#     uuid = assisant.get_QRuuid()
-#     response = {}
-#     response['type'] = 'uuid'
-#     response['uuid'] = uuid
-#     print("fork")
-#     p = Process(target=run_assisant, args=(assisant, ))
-#     p.daemon = True
-#     p.start()
-#     return JsonResponse(response)
-
 def index(request):
     return render(request, 'index.html', {})
+
+def mp(request):
+    data = request.GET
+    if not data:
+        return HttpResponse("invalid request")
+
+    signature = data.get('signature')
+    timestamp = data.get('timestamp')
+    nonce = data.get('nonce')
+    echostr = data.get('echostr')
+    token = "520william"
+
+    arg_list = [token, timestamp, nonce]
+    arg_list.sort()
+    sha1 = hashlib.sha1()
+    map(sha1.update, arg_list)
+    hashcode = sha1.hexdigest()
+    logger.info("mp/GET func: hashcode, signature: " % (hashcode, signature))
+    if hashcode == signature:
+        return HttpResponse(echostr)
+    else:
+        return "error"
