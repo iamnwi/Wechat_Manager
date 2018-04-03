@@ -19,28 +19,20 @@ from multiprocessing import Process
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+# wechat_mp = Wechat_MP()
+# p = Process(target=check_access_token, args=(wechat_mp, ))
+# p.daemon = True
+# logger.info("fork a access token checking process")
+# p.start()
+
+def check_access_token(wechat_mp):
+    logger.info("check access token")
+    if time.time() - wechat_mp.access_token_stamp > wechat_mp.expire_duration:
+        wechat_mp.update_access_token()
+    else:
+        logger.info("access token still work, sleep 10s")
+        sleep(10)
+
 # Create your views here.
 def index(request):
     return render(request, 'index.html', {})
-
-def mp(request):
-    data = request.GET
-    if not data:
-        return HttpResponse("invalid request")
-
-    signature = data.get('signature')
-    timestamp = data.get('timestamp')
-    nonce = data.get('nonce')
-    echostr = data.get('echostr')
-    token = "520william"
-
-    arg_list = [token, timestamp, nonce]
-    arg_list.sort()
-    sha1 = hashlib.sha1()
-    map(sha1.update, arg_list)
-    hashcode = sha1.hexdigest()
-    logger.info("mp/GET func: hashcode, signature: " % (hashcode, signature))
-    if hashcode == signature:
-        return HttpResponse(echostr)
-    else:
-        return "error"
