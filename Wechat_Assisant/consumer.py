@@ -12,9 +12,9 @@ from multiprocessing import Process
 logger = logging.getLogger(__name__)
 
 class WechatConsumer(WebsocketConsumer):
-    def ws_login(self):
+    def ws_login(self, openid):
         logger.info("login request")
-        assisant = Assisant()
+        assisant = Assisant(openid)
         logger.info("get uuid")
         try:
             uuid = assisant.get_QRuuid()
@@ -36,13 +36,15 @@ class WechatConsumer(WebsocketConsumer):
 
     def connect(self):
         self.accept()
-        self.ws_login()
 
     def disconnect(self, close_code):
         pass
 
     def receive(self, text_data):
-        pass
+        data = json.loads(text_data)
+        if 'type' in data and data['type']=='login':
+            logger.info("receive login wb, openid=%s" % data['openid'])
+            self.ws_login(data['openid'])
 
 def run_assisant(assisant):
     logger.info("check login status of client(uuid:%s)" % assisant.uuid)

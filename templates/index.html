@@ -45,11 +45,31 @@
   <script src="https://apps.bdimg.com/libs/jquery/2.1.4/jquery.min.js"></script>
   <script src="http://cdn.rawgit.com/jeromeetienne/jquery-qrcode/master/jquery.qrcode.min.js"></script>
   <script type="text/javascript">
+    function getParameterByName(name, url) {
+      if (!url) url = window.location.href;
+      name = name.replace(/[\[\]]/g, "\\$&");
+      var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+          results = regex.exec(url);
+      if (!results) return null;
+      if (!results[2]) return '';
+      return decodeURIComponent(results[2].replace(/\+/g, " "));
+    }
+
     function ws_login(websocket) {
       var wsUri = 'ws://' + window.location.host + '/wslogin'
       websocket = new WebSocket(wsUri);
       websocket.onopen = function(evt) {
         console.log(evt);
+        openid = getParameterByName('openid')
+        if (openid) {
+          websocket.send(JSON.stringify({
+            type: 'login',
+            openid: openid,
+          }));
+        }
+        else {
+          console.log('url arg errors')
+        }
       };
       websocket.onclose = function(evt) {
         console.log(evt);

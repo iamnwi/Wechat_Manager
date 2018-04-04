@@ -19,28 +19,37 @@ from multiprocessing import Process
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+def run_returned_assistant(assistant):
+    logger.info("check login status of client(uuid:%s)" % assistant.uuid)
+    logined = assistant.check_login()
+    if logined:
+        logger.info("client(uuid:%s) logined! run..." % assistant.uuid)
+        assistant.run()
+
 # Create your views here.
 def index(request):
     return render(request, 'index.html', {})
 
-def mp(request):
-    data = request.GET
-    if not data:
-        return HttpResponse("invalid request")
+def pushlogin(request):
+    if request.method == 'GET':
+        data = request.GET
+    elif request.method == 'POST':
+        data = request.POST
 
-    signature = data.get('signature')
-    timestamp = data.get('timestamp')
-    nonce = data.get('nonce')
-    echostr = data.get('echostr')
-    token = "520william"
+    if 'openid' in data:
+        openid = data['openid']
+        wc = get_wc(openid=openid)
+        if wc:
+            assistant = Assisant(openid)
+            try:
+                uuid = assistant.login_returned_client(wc)
+            except:
+                logger.error("Unknown Exception Occured During Getting Push Login uuid!")
+                return HttpResponse('unknown errors')
+            p = Process(target=run_returned_assistant, args=(assistant, ))
+            p.daemon = True
+            logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+            p.start()
+            return HttpResponse('200')
 
-    arg_list = [token, timestamp, nonce]
-    arg_list.sort()
-    sha1 = hashlib.sha1()
-    map(sha1.update, arg_list)
-    hashcode = sha1.hexdigest()
-    logger.info("mp/GET func: hashcode, signature: " % (hashcode, signature))
-    if hashcode == signature:
-        return HttpResponse(echostr)
-    else:
-        return "error"
+    return HttpResponse('arg errors')

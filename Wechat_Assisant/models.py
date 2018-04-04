@@ -5,10 +5,22 @@ from django.db import models
 
 # Create your models here.
 class WechatClient(models.Model):
-    uin = models.CharField(max_length=200, default='NONE')
-    user_name = models.CharField(max_length=200, default='NONE')
-    nick_name = models.CharField(max_length=200, default='NONE')
+    openid = models.CharField(max_length=200, default='None')
+    uin = models.CharField(max_length=200)
+    user_name = models.CharField(max_length=200)
+    nick_name = models.CharField(max_length=200)
     online = models.BooleanField(default=False)
+    # cookies for push login
+    host = models.CharField(max_length=50, default='None')
+    webwxuvid = models.CharField(max_length=100, default='None')
+    webwx_auth_ticket = models.CharField(max_length=190, default='None')
+    # wxuin = models.CharField(max_length=10, default='None')
+    # wxloadtime = models.CharField(max_length=20, default='None')
+    # wxpluginkey = models.CharField(max_length=10, default='None')
+    # login_frequency = models.CharField(max_length=5, default='None')
+    # mm_lang = models.CharField(max_length=10, default='None')
+    # MM_WX_NOTIFY_STATE = models.CharField(max_length=10, default='None')
+    # MM_WX_SOUND_STATE = models.CharField(max_length=10, default='None')
 
     def __str__(self):
         return ("uin:%s, nick_name:%s" % (self.uin, self.nick_name))
@@ -139,13 +151,19 @@ def get_group_nick_name(group_name):
     if group:
         return group.nick_name
 
-def get_wc(uin=None, user_name=None):
-    if not (uin==None and user_name==None):
-        if uin:
-            wc = WechatClient.objects.get(uin=uin)
-        elif user_name:
-            wc = WechatClient.objects.get(user_name=user_name)
-        print("[get wechat client] uin = %s, username = %s" % (uin, user_name))
+def get_wc(uin=None, user_name=None, openid=None):
+    if not (uin==None and user_name==None and openid==None):
+        try:
+            if uin:
+                print("uin=%s" % uin)
+                wc = WechatClient.objects.get(uin=uin)
+            elif user_name:
+                wc = WechatClient.objects.get(user_name=user_name)
+            elif openid:
+                wc = WechatClient.objects.get(openid=openid)
+            print("[get wechat client] openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
+        except WechatClient.DoesNotExist:
+            wc = None
         return wc
 
 def get_msg(msg_id=None):
