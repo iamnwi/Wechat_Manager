@@ -21,6 +21,7 @@ originInstance = new_instance()
 # components.login
 login                       = originInstance.login
 set_login                   = originInstance.set_login
+push_login                  = originInstance.push_login
 get_QRuuid                  = originInstance.get_QRuuid
 get_QR                      = originInstance.get_QR
 check_login                 = originInstance.check_login

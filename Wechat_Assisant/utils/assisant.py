@@ -18,24 +18,29 @@ from Wechat_Assisant.models import *
 logger = logging.getLogger(__name__)
 
 class Assisant():
-    def __init__(self):
+    def __init__(self, openid):
         self.uuid = None
+        self.openid = openid
 
     def init_client(self):
-        itchat.set_login(exitCallback=turn_offline)
+        session, host = itchat.set_login(exitCallback=turn_offline)
+        cookies_dict = session.cookies.get_dict()
         uin = (itchat.search_friends())['Uin']
         user_name = (itchat.search_friends())['UserName']
         nick_name = (itchat.search_friends())['NickName']
         logger.info("login info: uin=%s, NickName=%s" % (uin, nick_name));
-        client_qs = WechatClient.objects.filter(uin=uin)
-        if client_qs.count() == 0:
-            wc = WechatClient(uin=uin, user_name=user_name, nick_name=nick_name, online=True)
-            wc.save()
-        elif client_qs.count() == 1:
-            wc = client_qs.get(uin=uin)
+        logger.info("host=%s" % host)
+        wc = get_wc(uin=uin)
+        if wc:
             wc.user_name = user_name
             wc.nick_name = nick_name
             wc.online = True
+            wc.save()
+        else:
+            logger.info("openid=%s, first login, cookies=%s" % (self.openid, cookies_dict))
+            wc = WechatClient(openid=self.openid, uin=uin, user_name=user_name, nick_name=nick_name, online=True, \
+                            webwxuvid=cookies_dict['webwxuvid'], webwx_auth_ticket=cookies_dict['webwx_auth_ticket'], \
+                            host=host)
             wc.save()
 
     def run(self):
@@ -63,3 +68,7 @@ class Assisant():
         else:
             logger.info('(uuid:%s)Log in time out, reloading QR code.' % self.uuid)
             return False
+
+    def login_returned_client(self, wc):
+        self.uuid = itchat.push_login(wc=wc)
+        return self.uuid

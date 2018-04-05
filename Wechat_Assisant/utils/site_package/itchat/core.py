@@ -62,6 +62,12 @@ class Core(object):
             set everything once logined
         '''
         raise NotImplementedError()
+    def push_login(self, wc=None):
+        '''
+            push login, do not need scaning qr code
+            retrive cookies from django model
+        '''
+        raise NotImplementedError()
     def get_QRuuid(self):
         ''' get uuid for qrcode
             uuid is the symbol of qrcode

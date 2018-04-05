@@ -17,11 +17,14 @@ from ..storage.templates import wrap_user_dict
 from .contact import update_local_chatrooms, update_local_friends
 from .messages import produce_msg
 
+from django.db import models
+
 logger = logging.getLogger('itchat')
 
 def load_login(core):
     core.login             = login
     core.set_login         = set_login
+    core.push_login        = push_login
     core.get_QRuuid        = get_QRuuid
     core.get_QR            = get_QR
     core.check_login       = check_login
@@ -95,18 +98,41 @@ def set_login(self, loginCallback=None, exitCallback=None):
     logger.info('Login successfully as %s' % self.storageClass.nickName)
     self.start_receiving(exitCallback)
     self.isLogging = False
+    return self.s, self.loginInfo['url']
 
-def push_login(core):
-    cookiesDict = core.s.cookies.get_dict()
-    if 'wxuin' in cookiesDict:
-        url = '%s/cgi-bin/mmwebwx-bin/webwxpushloginurl?uin=%s' % (
-            config.BASE_URL, cookiesDict['wxuin'])
+# def push_login(core):
+#     cookiesDict = core.s.cookies.get_dict()
+#     if 'wxuin' in cookiesDict:
+#         url = '%s/cgi-bin/mmwebwx-bin/webwxpushloginurl?uin=%s' % (
+#             config.BASE_URL, cookiesDict['wxuin'])
+#         headers = { 'User-Agent' : config.USER_AGENT }
+#         r = core.s.get(url, headers=headers).json()
+#         if 'uuid' in r and r.get('ret') in (0, '0'):
+#             core.uuid = r['uuid']
+#             return r['uuid']
+#     return False
+
+def push_login(self, wc=None):
+    if wc:
+        url = '%s/webwxpushloginurl?uin=%s' % (wc.host, wc.uin)
         headers = { 'User-Agent' : config.USER_AGENT }
-        r = core.s.get(url, headers=headers).json()
+        cookies = {
+            # 'mm_lang' : wc.mm_lang,
+            'webwx_auth_ticket' : wc.webwx_auth_ticket,
+            # 'wxloadtime' : wc.wxloadtime,
+            # 'wxpluginkey' : wc.wxpluginkey,
+            'webwxuvid' : wc.webwxuvid,
+            'wxuin' : wc.uin,
+            # 'MM_WX_NOTIFY_STATE' : wc.MM_WX_NOTIFY_STATE,
+            # 'login_frequency' : '2',
+            # 'last_wxuin' : wc.wxuin,
+            # 'MM_WX_SOUND_STATE' : wc.MM_WX_SOUND_STATE }
+            }
+        r = requests.get(url, headers=headers, cookies=cookies).json()
         if 'uuid' in r and r.get('ret') in (0, '0'):
-            core.uuid = r['uuid']
+            self.uuid = r['uuid']
             return r['uuid']
-    return False
+    return None
 
 def get_QRuuid(self):
     url = '%s/jslogin' % config.BASE_URL
@@ -364,11 +390,11 @@ def logout(self):
         headers = { 'User-Agent' : config.USER_AGENT }
         self.s.get(url, params=params, headers=headers)
         self.alive = False
-    self.isLogging = False
-    self.s.cookies.clear()
-    del self.chatroomList[:]
-    del self.memberList[:]
-    del self.mpList[:]
+    # self.isLogging = False
+    # self.s.cookies.clear()
+    # del self.chatroomList[:]
+    # del self.memberList[:]
+    # del self.mpList[:]
     return ReturnValue({'BaseResponse': {
         'ErrMsg': 'logout successfully.',
         'Ret': 0, }})

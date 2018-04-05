@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 sendFilePrefixDict = {'Attachment': '@fil@', 'Picture': '@img@', 'Video': '@vid@'}
 
 def get_google_credentials():
-	secrete_dir = '/Users/ngwaii/Desktop/GraduationDesign/2017/Wechat_Manager/Wechat_Manager/secrete/'
+	secrete_dir = '/Users/ngwaii/Desktop/GraduationDesign/2017/Wechat_Manager/Wechat_Manager/secret/'
 	with open(secrete_dir + 'GOOGLE_CLOUD_SPEECH_CREDENTIALS', 'r') as f:
 		s = f.read()
 		return s
