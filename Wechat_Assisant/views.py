@@ -16,19 +16,8 @@ import logging
 # mp
 from multiprocessing import Process
 
-# wehcat-mp utils
-from .utils.wechatmputils import *
-
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
-
-def run_mp():
-    mp = init_mp()
-    p = Process(target=refresh_access_token, args=(mp, ))
-    p.daemon = True
-    p.start()
-
-run_mp()
 
 def run_returned_assistant(assistant):
     logger.info("check login status of client(uuid:%s)" % assistant.uuid)
