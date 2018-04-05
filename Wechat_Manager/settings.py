@@ -157,3 +157,8 @@ STATIC_URL = '/static/'
 
 # Channels
 ASGI_APPLICATION = 'Wechat_Manager.routing.application'
+# Wechat MP
+MP_APP_ID = 'wx8a9b7b3c741a2414'
+MP_APP_SECRET = '07004aa665d414d3ad0b1abb34ff43b7'
+MP_EncodingAESKey = 'rY9zLJkZGN7VHU8GrxSLtSaevMXJudLhIy83amj5nag'
+MP_TOKEN = '520william'

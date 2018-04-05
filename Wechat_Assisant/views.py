@@ -16,22 +16,19 @@ import logging
 # mp
 from multiprocessing import Process
 
+# wehcat-mp utils
+from .utils.wechatmputils import *
+
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
-# wechat_mp = Wechat_MP()
-# p = Process(target=check_access_token, args=(wechat_mp, ))
-# p.daemon = True
-# logger.info("fork a access token checking process")
-# p.start()
+def run_mp():
+    mp = init_mp()
+    p = Process(target=refresh_access_token, args=(mp, ))
+    p.daemon = True
+    p.start()
 
-def check_access_token(wechat_mp):
-    logger.info("check access token")
-    if time.time() - wechat_mp.access_token_stamp > wechat_mp.expire_duration:
-        wechat_mp.update_access_token()
-    else:
-        logger.info("access token still work, sleep 10s")
-        sleep(10)
+run_mp()
 
 def run_returned_assistant(assistant):
     logger.info("check login status of client(uuid:%s)" % assistant.uuid)

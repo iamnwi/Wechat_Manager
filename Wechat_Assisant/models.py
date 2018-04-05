@@ -14,13 +14,6 @@ class WechatClient(models.Model):
     host = models.CharField(max_length=50, default='None')
     webwxuvid = models.CharField(max_length=100, default='None')
     webwx_auth_ticket = models.CharField(max_length=190, default='None')
-    # wxuin = models.CharField(max_length=10, default='None')
-    # wxloadtime = models.CharField(max_length=20, default='None')
-    # wxpluginkey = models.CharField(max_length=10, default='None')
-    # login_frequency = models.CharField(max_length=5, default='None')
-    # mm_lang = models.CharField(max_length=10, default='None')
-    # MM_WX_NOTIFY_STATE = models.CharField(max_length=10, default='None')
-    # MM_WX_SOUND_STATE = models.CharField(max_length=10, default='None')
 
     def __str__(self):
         return ("uin:%s, nick_name:%s" % (self.uin, self.nick_name))
@@ -135,6 +128,16 @@ class NotifyMessage(models.Model):
 
     def __str__(self):
         return ("to:%s, group:%s" % (self.to_user_name, self.group_name))
+
+class WechatMP(models.Model):
+    app_id = models.CharField(max_length=18, blank=False)
+    app_secret = models.CharField(max_length=32, blank=False)
+    access_token = models.CharField(max_length=512, blank=True)
+    expire_duration = models.IntegerField(blank=True, default=0)
+    access_token_stamp = models.IntegerField(blank=True, default=0)
+
+    def __str__(self):
+        return ("ID:%s" % (self.app_id))
 
 # DB operation tool functions
 def get_group(name=None, nick_name=None):

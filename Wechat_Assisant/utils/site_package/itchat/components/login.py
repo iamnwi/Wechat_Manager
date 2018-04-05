@@ -117,16 +117,9 @@ def push_login(self, wc=None):
         url = '%s/webwxpushloginurl?uin=%s' % (wc.host, wc.uin)
         headers = { 'User-Agent' : config.USER_AGENT }
         cookies = {
-            # 'mm_lang' : wc.mm_lang,
             'webwx_auth_ticket' : wc.webwx_auth_ticket,
-            # 'wxloadtime' : wc.wxloadtime,
-            # 'wxpluginkey' : wc.wxpluginkey,
             'webwxuvid' : wc.webwxuvid,
             'wxuin' : wc.uin,
-            # 'MM_WX_NOTIFY_STATE' : wc.MM_WX_NOTIFY_STATE,
-            # 'login_frequency' : '2',
-            # 'last_wxuin' : wc.wxuin,
-            # 'MM_WX_SOUND_STATE' : wc.MM_WX_SOUND_STATE }
             }
         r = requests.get(url, headers=headers, cookies=cookies).json()
         if 'uuid' in r and r.get('ret') in (0, '0'):
