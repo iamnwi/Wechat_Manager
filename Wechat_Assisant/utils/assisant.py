@@ -30,7 +30,7 @@ class Assisant():
         nick_name = (itchat.search_friends())['NickName']
         logger.info("login info: uin=%s, NickName=%s" % (uin, nick_name));
         logger.info("host=%s" % host)
-        wc = get_wc(uin=uin)
+        wc = get_wc(openid=self.openid)
         if wc:
             wc.user_name = user_name
             wc.nick_name = nick_name

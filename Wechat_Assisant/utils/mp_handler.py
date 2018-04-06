@@ -20,9 +20,9 @@ def run_mp():
     @mp_robot.handler
     def text_reply(message):
         if message.content == "login":
-            login(message)
+            return mp_login(message)
         elif message.content == "quick-login":
-            pushlogin(message)
+            return mp_pushlogin(message)
         elif message.content == "logout":
             from_openid = message.source
             return ("openid %s inputed a logout command" % from_openid)
@@ -35,18 +35,18 @@ def run_mp():
             logout: end our services
             """
             return help_menue
-
+    
     def mp_login(message):
         from_openid = message.source
-        url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' %s from_openid
+        url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' % from_openid
         rely_text = 'please use another device to browse the webpage %s to finish login' % url
-        return (rely_text)
+        return rely_text
 
     def mp_pushlogin(message):
         from_openid = message.source
         push(from_openid)
         rely_text = 'please wait and comfirm login on you phone'
-        return (rely_text)
+        return rely_text
 
     return mp_robot
 

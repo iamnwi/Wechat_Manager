@@ -34,6 +34,7 @@ def push(openid):
         logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
         p.start()
         return True
+    logger.info("cannot find cookies of client(openid:%s)" % (openid))
     return False
 
 def run_returned_assistant(assistant):
@@ -57,7 +58,8 @@ def pushlogin(request):
         status = push(data['openid'])
         if status:
             return HttpResponse('200')
-        else return HttpResponse('500')
+        else:
+            return HttpResponse('500')
     return HttpResponse('arg errors')
 
 def wxmp(requests):
