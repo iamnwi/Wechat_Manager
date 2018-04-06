@@ -53,3 +53,8 @@ def pushlogin(request):
             return HttpResponse('200')
 
     return HttpResponse('arg errors')
+
+def wxmp(requests):
+    if validate(requests):
+        return HttpResponse(request.REQUEST.get('echostr', ''))
+    return HttpResponse('ERROR')

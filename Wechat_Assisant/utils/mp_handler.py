@@ -6,12 +6,12 @@ from .wechatmputils import *
 from multiprocessing import Process
 
 def run_mp():
-    mp = init_mp()
-    p = Process(target=refresh_access_token, args=(mp, ))
-    p.daemon = True
-    p.start()
-    access_token = get_access_token(settings.MP_APP_ID)
-    mp_robot = WeRoBot(token=access_token)
+    # mp = init_mp()
+    # p = Process(target=refresh_access_token, args=(mp, ))
+    # p.daemon = True
+    # p.start()
+    # access_token = get_access_token(settings.MP_APP_ID)
+    mp_robot = WeRoBot(token=settings.MP_TOKEN)
 
     @mp_robot.handler
     def hello(message):
