@@ -1,4 +1,4 @@
-import sys, logging, time, requests, json
+import sys, logging, time, requests, json, hashlib
 from Wechat_Assisant.models import WechatMP
 from django.conf import settings
 
@@ -12,11 +12,12 @@ def init_mp():
     return mp
 
 def validate(request):
-    signature = request.REQUEST.get('signature', '')
-    timestamp = request.REQUEST.get('timestamp', '')
-    nonce = request.REQUEST.get('nonce',  '')
+    signature = request.GET.get('signature', '')
+    timestamp = request.GET.get('timestamp', '')
+    nonce = request.GET.get('nonce',  '')
+    combine = ''.join(sorted([settings.MP_TOKEN, timestamp, nonce]))
 
-    tmp_str = hashlib.sha1(''.join(sorted([settings.MP_TOKEN, timestamp, nonce]))).hexdigest()
+    tmp_str = hashlib.sha1(combine.encode('utf-8')).hexdigest()
     if tmp_str == signature:
         return True
 

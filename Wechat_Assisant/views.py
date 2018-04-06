@@ -7,6 +7,7 @@ from django.http import JsonResponse
 
 from Wechat_Assisant.models import *
 from .utils.assisant import Assisant
+from .utils.wechatmputils import *
 
 import time
 import base64
@@ -56,5 +57,5 @@ def pushlogin(request):
 
 def wxmp(requests):
     if validate(requests):
-        return HttpResponse(request.REQUEST.get('echostr', ''))
+        return HttpResponse(requests.GET.get('echostr', ''))
     return HttpResponse('ERROR')
