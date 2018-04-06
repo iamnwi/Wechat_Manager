@@ -20,6 +20,22 @@ from multiprocessing import Process
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
 
+def push(openid):
+    wc = get_wc(openid=openid)
+    if wc:
+        assistant = Assisant(openid)
+        try:
+            uuid = assistant.login_returned_client(wc)
+        except:
+            logger.error("Unknown Exception Occured During Getting Push Login uuid!")
+            return False
+        p = Process(target=run_returned_assistant, args=(assistant, ))
+        p.daemon = True
+        logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        p.start()
+        return True
+    return False
+
 def run_returned_assistant(assistant):
     logger.info("check login status of client(uuid:%s)" % assistant.uuid)
     logined = assistant.check_login()
@@ -38,21 +54,10 @@ def pushlogin(request):
         data = request.POST
 
     if 'openid' in data:
-        openid = data['openid']
-        wc = get_wc(openid=openid)
-        if wc:
-            assistant = Assisant(openid)
-            try:
-                uuid = assistant.login_returned_client(wc)
-            except:
-                logger.error("Unknown Exception Occured During Getting Push Login uuid!")
-                return HttpResponse('unknown errors')
-            p = Process(target=run_returned_assistant, args=(assistant, ))
-            p.daemon = True
-            logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-            p.start()
+        status = push(data['openid'])
+        if status:
             return HttpResponse('200')
-
+        else return HttpResponse('500')
     return HttpResponse('arg errors')
 
 def wxmp(requests):
