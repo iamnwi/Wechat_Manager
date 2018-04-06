@@ -55,54 +55,60 @@
       return decodeURIComponent(results[2].replace(/\+/g, " "));
     }
 
-    function ws_login(websocket) {
-      var wsUri = 'ws://' + window.location.host + '/wslogin'
-      websocket = new WebSocket(wsUri);
-      websocket.onopen = function(evt) {
-        console.log(evt);
-        openid = getParameterByName('openid')
-        if (openid) {
-          websocket.send(JSON.stringify({
-            type: 'login',
-            openid: openid,
-          }));
+    function login() {
+      openid = getParameterByName('openid')
+      var url = "http://127.0.0.1:8000/Wechat_Assisant/login?openid=" + openid;
+      // var url = "http://60.205.223.152/Wechat_Assisant/login?openid=" + openid";
+      fetch(url, {method: 'GET'})
+      .then(function(response) {
+        console.log(response.headers)
+        return response.json();
+      })
+      .then(function(data) {
+        console.log(data);
+        if (data.type == "uuid") {
+          console.log("uuid = " + data.uuid);
+          var text = "https://login.weixin.qq.com/l/" + data.uuid;
+          jQuery('#qr_output').qrcode({width: 256,
+                                    height: 256,
+                                    text: text});
+          show_msg("请使用手机微信扫码登录");
+          setTimeout(function() {check_login()}, 1000);
         }
         else {
-          console.log('url arg errors')
-        }
-      };
-      websocket.onclose = function(evt) {
-        console.log(evt);
-      };
-      websocket.onmessage = function(evt) {
-        console.log("/on message");
-        console.log(evt);
-        console.log("on message/");
-        data = JSON.parse(evt.data);
-        if (data['type'] == "error") {
-          console.log("error: " + data['detail'])
           show_msg("服务器繁忙，请重试");
         }
-        else if (data['type'] == "uuid") {
-          console.log("uuid = " + data['uuid'])
-          var text = "https://login.weixin.qq.com/l/" + data['uuid'];
-          jQuery(function() {
-              $('#qr_output').qrcode({
-                width: 270,
-                height: 270,
-                text: text
-              });
-          });
-          var canvas = $('#qr_output canvas');
-          var img = canvas.get(0).toDataURL("image/png");
-          $("#qrcode").attr("src", img);
-          show_msg("请使用手机微信扫码登录");
-          setTimeout(function() { qr_timeout(); }, 20*1000);
+      })
+    }
+
+    function check_login() {
+      openid = getParameterByName('openid')
+      var url = "http://127.0.0.1:8000/Wechat_Assisant/loginstatus?openid="+openid;
+      // var url = "http://60.205.223.152/Wechat_Assisant/loginstatus?openid="+openid";
+      fetch(url, {method: 'GET',})
+      .then(function(response) {
+        console.log(response.headers)
+        return response.json();
+      })
+      .then(function(data) {
+        console.log(data);
+        if (data.code == "200") {
+          show_msg("登录成功");
         }
-      };
-      websocket.onerror = function(evt) {
-        console.log("Error!");
-      };
+        else if (data.code == "201") {
+          show_msg("请在手机微信上确认登录");
+          setTimeout(function() {check_login()}, 3000);
+        }
+        else if (data.code == "408") {
+          show_msg("二维码过期，请刷新网页");
+        }
+        else if (data.code == "0") {
+          setTimeout(function() {check_login()}, 3000);
+        }
+        else {
+          console.log('unknow status of login')
+        }
+      });
     }
 
     function show_msg(msg) {
@@ -110,15 +116,9 @@
       $("#msg_box").append("<p>"+msg+"</p>");
     }
 
-    function qr_timeout() {
-      var while_png_src = "data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAQAAAAnOwc2AAAAEUlEQVR42mP8/58BAzAOZUEA5OUT9xiCXfgAAAAASUVORK5CYII="
-      $("#qrcode").attr("src", while_png_src);
-      show_msg("二维码过期，请刷新网页");
-    }
-
     $(document).ready(function() {
       show_msg("正在获收登入二维码...");
-      ws_login()
+      login();
     });
   </script>
 </head>
@@ -130,8 +130,7 @@
         <p> Wechat Helper </p>
       </div>
       <div id="qrcode_div" class=qr_div>
-        <div id="qr_output" style="display: none;"></div>
-        <img id="qrcode" class="qr_img"/>
+        <div id="qr_output"></div>
         <div id="msg_box"></div>
       </div>
     </div>

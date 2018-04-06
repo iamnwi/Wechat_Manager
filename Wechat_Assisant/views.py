@@ -62,7 +62,68 @@ def pushlogin(request):
             return HttpResponse('500')
     return HttpResponse('arg errors')
 
-def wxmp(requests):
-    if validate(requests):
-        return HttpResponse(requests.GET.get('echostr', ''))
+def wxmp(request):
+    if validate(request):
+        return HttpResponse(request.GET.get('echostr', ''))
     return HttpResponse('ERROR')
+
+def login(request):
+    logger.info("login request")
+    if request.method == 'GET':
+        data = request.GET
+    elif request.method == 'POST':
+        data = request.POST
+
+    openid = data['openid']
+    try:
+        uuid = Assisant.get_QRuuid()
+        logger.info("got uuid:%s" % uuid)
+        # initial login status
+        wc = get_wc(openid=openid)
+        wc.login_status = 0
+        wc.save()
+        # fork a process to keep checking the login status
+        p = Process(target=Assisant.check_login, args=(uuid, openid, ))
+        p.daemon = True
+        logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        p.start()
+        return JsonResponse({
+            'type': 'uuid',
+            'uuid': uuid
+        })
+    except Exception as e:
+        logger.error("Unknown Exception Occured! %s" % e)
+        return JsonResponse({
+            'type': 'error',
+            'detail': 'Connection Error'
+        })
+
+def loginstatus(request):
+    logger.info("loginstatus request")
+    if request.method == 'GET':
+        data = request.GET
+    elif request.method == 'POST':
+        data = request.POST
+
+    if 'openid' in data:
+        openid = data['openid']
+        wc = get_wc(openid=openid)
+        if wc:
+            status = wc.login_status
+            if status == '200':
+                logger.info("client(openid = %s) login successfully" % openid)
+                return JsonResponse({'code': status})
+            elif status == '201':
+                logger.info("waiting client(openid = %s) to confirm on phone" % openid)
+                return JsonResponse({'code': status})
+            elif status == '408':
+                logger.info("client(openid = %s) qrcode is timeout" % openid)
+                return JsonResponse({'code': status})
+            else:
+                logger.info("not yet receive client's(openid = %s) login status" % openid)
+                return JsonResponse({'code': status})
+        else:
+            logger.info("No records related to openid = %s" % openid)
+            return JsonResponse({'code': '400'})
+    else:
+        return JsonResponse({'code': '400'})
