@@ -1,4 +1,5 @@
 # -*- coding:utf8 -*-
+import re
 from werobot import WeRoBot
 
 from django.conf import settings
@@ -18,24 +19,27 @@ def run_mp():
     mp_robot = WeRoBot(token=settings.MP_TOKEN)
     mp_robot.config["APP_ID"] = settings.MP_APP_ID
     mp_robot.config["APP_SECRET"] = settings.MP_APP_SECRET
+    greet = "Hi, nice to meet you! Why don't you input 'login' to enjoy our service? :)"
+    help_menue = \
+    """
+    Oh, I bet you feel confused now. Actually, only one thing you need to do currently:
+    Input 'login'
+    """
 
-    @mp_robot.handler
+    @robot.subscribe
+    def subscribe(message):
+        return 'Hello My Friend!'
+
+    @mp_robot.text
     def text_reply(message):
-        if message.content == "login":
-            return mp_login(message)
-        elif message.content == "quick-login":
-            return mp_pushlogin(message)
-        elif message.content == "logout":
-            from_openid = message.source
-            return ("openid %s inputed a logout command" % from_openid)
+        if re.match('login', message.content, re.IGNORECASE):
+            push_res = mp_pushlogin(message)
+            if push_res:
+                rely_text = 'please wait and comfirm login on you phone'
+                return rely_text
+            else:
+                return mp_login(messages)
         else:
-            help_menue = \
-            """
-            Hi, here are the commands I know:
-            login: scan QR code on a website and start our services
-            quick-login: a convenient login without scaning QR code(available after login)
-            logout: end our services
-            """
             return help_menue
 
     def mp_login(message):
@@ -55,9 +59,7 @@ def run_mp():
 
     def mp_pushlogin(message):
         from_openid = message.source
-        push(from_openid)
-        rely_text = 'please wait and comfirm login on you phone'
-        return rely_text
+        return push(from_openid)
 
     return mp_robot
 
