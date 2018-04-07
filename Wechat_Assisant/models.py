@@ -6,9 +6,9 @@ from django.db import models
 # Create your models here.
 class WechatClient(models.Model):
     openid = models.CharField(max_length=200, default='None')
-    uin = models.CharField(max_length=200)
-    user_name = models.CharField(max_length=200)
-    nick_name = models.CharField(max_length=200)
+    uin = models.CharField(max_length=200, blank=True)
+    user_name = models.CharField(max_length=200, default='None')
+    nick_name = models.CharField(max_length=200, default='None')
     online = models.BooleanField(default=False)
     # login status
     # 0: initial status, 200: logined, 201: wait for scan, 408: qrcode timeout

@@ -35,10 +35,9 @@ class Assisant():
         logger.info("host=%s" % host)
         wc = get_wc(openid=self.openid)
         if wc:
-            wc.user_name = user_name
-            wc.nick_name = nick_name
-            wc.online = True
-            wc.save()
+            wc.update(openid=self.openid, uin=uin, user_name=user_name, nick_name=nick_name, online=True, \
+                    webwxuvid=cookies_dict['webwxuvid'], webwx_auth_ticket=cookies_dict['webwx_auth_ticket'], \
+                    host=host)
         else:
             logger.info("openid=%s, first login, cookies=%s" % (self.openid, cookies_dict))
             wc = WechatClient(openid=self.openid, uin=uin, user_name=user_name, nick_name=nick_name, online=True, \

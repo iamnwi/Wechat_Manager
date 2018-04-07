@@ -80,7 +80,10 @@ def login(request):
         logger.info("got uuid:%s" % uuid)
         # initial login status
         wc = get_wc(openid=openid)
-        wc.login_status = 0
+        if wc:
+            wc.login_status = 0
+        else:
+            wc = WechatClient(openid=openid)
         wc.save()
         # fork a process to keep checking the login status
         p = Process(target=Assisant.check_login, args=(uuid, openid, ))
