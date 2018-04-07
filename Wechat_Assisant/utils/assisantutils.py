@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 sendFilePrefixDict = {'Attachment': '@fil@', 'Picture': '@img@', 'Video': '@vid@'}
 
 def get_google_credentials():
-	secrete_dir = '/Users/ngwaii/Desktop/GraduationDesign/2017/Wechat_Manager/Wechat_Manager/secret/'
+	secrete_dir = '/home/www/Wechat_Manager/Wechat_Manager/secret/'
 	with open(secrete_dir + 'GOOGLE_CLOUD_SPEECH_CREDENTIALS', 'r') as f:
 		s = f.read()
 		return s
@@ -245,6 +245,9 @@ def msg_handler(msg):
 # 		2. How can we identical different groups? now a group will create a new model after users login again
 @itchat.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
 def HandleGroupMsg(msg):
+        # drop the one send from the cilent and receive by the group(which to user is the group itself)
+	if '@@' in msg['ToUserName']:
+		return
 	logger.info('%s received a group msg' % get_nick_name(msg['ToUserName']))
 
 	# initial a group or update nick name of a gorup

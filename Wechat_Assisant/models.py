@@ -171,11 +171,13 @@ def get_wc(uin=None, user_name=None, openid=None):
                 print("uin=%s" % uin)
                 wc = WechatClient.objects.get(uin=uin)
             elif user_name:
+                print("user_name=%s" % user_name)
                 wc = WechatClient.objects.get(user_name=user_name)
             elif openid:
                 wc = WechatClient.objects.get(openid=openid)
             print("[get wechat client] openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
         except WechatClient.DoesNotExist:
+            print("wc doesn't exist!")
             wc = None
         return wc
 

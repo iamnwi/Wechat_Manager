@@ -3,7 +3,7 @@ from django.conf import settings
 
 def shorten(uri):
     query_params = {
-        'access_token': setting.BITLY_ACCESS_TOKEN,
+        'access_token': settings.BITLY_ACCESS_TOKEN,
         'longUrl': uri
     }
     endpoint = 'https://api-ssl.bitly.com/v3/shorten'

@@ -33,17 +33,10 @@ class Assisant():
         nick_name = (itchat.search_friends())['NickName']
         logger.info("login info: uin=%s, NickName=%s" % (uin, nick_name));
         logger.info("host=%s" % host)
-        wc = get_wc(openid=self.openid)
-        if wc:
-            wc.update(openid=self.openid, uin=uin, user_name=user_name, nick_name=nick_name, online=True, \
-                    webwxuvid=cookies_dict['webwxuvid'], webwx_auth_ticket=cookies_dict['webwx_auth_ticket'], \
-                    host=host)
-        else:
-            logger.info("openid=%s, first login, cookies=%s" % (self.openid, cookies_dict))
-            wc = WechatClient(openid=self.openid, uin=uin, user_name=user_name, nick_name=nick_name, online=True, \
-                            webwxuvid=cookies_dict['webwxuvid'], webwx_auth_ticket=cookies_dict['webwx_auth_ticket'], \
-                            host=host)
-            wc.save()
+        new_values = {'openid': self.openid, 'uin': uin, 'user_name':user_name, 'nick_name':nick_name, 'online':True,\
+                    'webwxuvid':cookies_dict['webwxuvid'], 'webwx_auth_ticket':cookies_dict['webwx_auth_ticket'],\
+                    'host':host}
+        wc, created = WechatClient.objects.update_or_create(openid=self.openid,defaults=new_values,)
 
     def run(self):
         self.init_client()

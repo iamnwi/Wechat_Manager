@@ -21,12 +21,10 @@ def run_mp():
     mp_robot.config["APP_SECRET"] = settings.MP_APP_SECRET
     greet = "Hi, nice to meet you! Why don't you input 'login' to enjoy our service? :)"
     help_menue = \
-    """
-    Oh, I bet you feel confused now. Actually, only one thing you need to do currently:
-    Input 'login'
-    """
+    """Oh, I bet you feel confused now. Actually, only one thing you need to do currently:
+Input 'login'"""
 
-    @robot.subscribe
+    @mp_robot.subscribe
     def subscribe(message):
         return 'Hello My Friend!'
 
@@ -38,7 +36,7 @@ def run_mp():
                 rely_text = 'please wait and comfirm login on you phone'
                 return rely_text
             else:
-                return mp_login(messages)
+                return mp_login(message)
         else:
             return help_menue
 
@@ -47,7 +45,7 @@ def run_mp():
         # otain short url from existed records or create a new record
         qs = ShortUrl.objects.filter(openid=from_openid)
         if qs.exists():
-            s_url = qs.get(openid=openid).login_url
+            s_url = qs.get(openid=from_openid).login_url
         else:
             url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' % from_openid
             s_url = shorten(url)
