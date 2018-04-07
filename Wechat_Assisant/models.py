@@ -142,6 +142,13 @@ class WechatMP(models.Model):
     def __str__(self):
         return ("ID:%s" % (self.app_id))
 
+class ShortUrl(models.Model):
+    openid = models.CharField(max_length=200)
+    login_url = models.CharField(max_length=30)
+
+    def __str__(self):
+        return ("openid:%s, login_url:%s" % (self.openid, self.login_url))
+
 # DB operation tool functions
 def get_group(name=None, nick_name=None):
     if not (name==None and nick_name==None):

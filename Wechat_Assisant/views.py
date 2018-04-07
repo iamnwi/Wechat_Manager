@@ -39,7 +39,7 @@ def push(openid):
 
 def run_returned_assistant(assistant):
     logger.info("check login status of client(uuid:%s)" % assistant.uuid)
-    logined = assistant.check_login()
+    logined = assistant.check_login(assistant.uuid, assistant.openid)
     if logined:
         logger.info("client(uuid:%s) logined! run..." % assistant.uuid)
         assistant.run()

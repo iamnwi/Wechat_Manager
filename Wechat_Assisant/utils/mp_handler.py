@@ -4,6 +4,8 @@ from werobot import WeRoBot
 from django.conf import settings
 from .wechatmputils import *
 from ..views import push
+from .bitly import *
+from Wechat_Assisant.models import ShortUrl
 # mp
 from multiprocessing import Process
 
@@ -35,11 +37,20 @@ def run_mp():
             logout: end our services
             """
             return help_menue
-    
+
     def mp_login(message):
         from_openid = message.source
-        url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' % from_openid
-        rely_text = 'please use another device to browse the webpage %s to finish login' % url
+        # otain short url from existed records or create a new record
+        qs = ShortUrl.objects.filter(openid=from_openid)
+        if qs.exists():
+            s_url = qs.get(openid=openid).login_url
+        else:
+            url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' % from_openid
+            s_url = shorten(url)
+            obj = ShortUrl(openid=from_openid, login_url=s_url)
+            obj.save()
+        # create reply msg
+        rely_text = 'please use another device to browse the webpage %s to finish login' % s_url
         return rely_text
 
     def mp_pushlogin(message):
