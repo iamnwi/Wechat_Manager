@@ -14,16 +14,24 @@ logger = logging.getLogger(__name__)
 class WechatConsumer(WebsocketConsumer):
     def ws_login(self, openid):
         logger.info("login request")
-        assisant = Assisant(openid)
         logger.info("get uuid")
         try:
-            uuid = assisant.get_QRuuid()
+            uuid = Assisant.get_QRuuid()
             logger.info("got uuid:%s" % uuid)
+            # initial login status
+            wc = get_wc(openid=openid)
+            if wc:
+                wc.login_status = 0
+            else:
+                wc = WechatClient(openid=openid)
+            wc.save()
+            # send uuid to web client
+            logger.info("send uuid(%s) to web client" % uuid)
             self.send(text_data=json.dumps({
                 'type': 'uuid',
                 'uuid': uuid
             }))
-            p = Process(target=run_assisant, args=(assisant, ))
+            p = Process(target=Assisant.check_login, args=(uuid, openid, ))
             p.daemon = True
             logger.info("fork a worker process for client(uuid:%s)" % uuid)
             p.start()
@@ -45,10 +53,3 @@ class WechatConsumer(WebsocketConsumer):
         if 'type' in data and data['type']=='login':
             logger.info("receive login wb, openid=%s" % data['openid'])
             self.ws_login(data['openid'])
-
-def run_assisant(assisant):
-    logger.info("check login status of client(uuid:%s)" % assisant.uuid)
-    logined = assisant.check_login()
-    if logined:
-        logger.info("client(uuid:%s) logined! run..." % assisant.uuid)
-        assisant.run()
