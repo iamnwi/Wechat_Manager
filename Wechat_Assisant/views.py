@@ -18,7 +18,7 @@ import logging
 from multiprocessing import Process
 
 # Get an instance of a logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('web-logger')
 
 def push(openid):
     wc = get_wc(openid=openid)
@@ -27,21 +27,21 @@ def push(openid):
         try:
             uuid = assistant.login_returned_client(wc)
         except:
-            logger.error("Unknown Exception Occured During Getting Push Login uuid!")
+            print("Unknown Exception Occured During Getting Push Login uuid!")
             return False
         p = Process(target=run_returned_assistant, args=(assistant, ))
         p.daemon = True
-        logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
         p.start()
         return True
-    logger.info("cannot find cookies of client(openid:%s)" % (openid))
+    print("cannot find cookies of client(openid:%s)" % (openid))
     return False
 
 def run_returned_assistant(assistant):
-    logger.info("check login status of client(uuid:%s)" % assistant.uuid)
+    print("check login status of client(uuid:%s)" % assistant.uuid)
     logined = assistant.check_login(assistant.uuid, assistant.openid)
     if logined:
-        logger.info("client(uuid:%s) logined! run..." % assistant.uuid)
+        print("client(uuid:%s) logined! run..." % assistant.uuid)
         assistant.run()
 
 # Create your views here.
@@ -68,7 +68,7 @@ def wxmp(request):
     return HttpResponse('ERROR')
 
 def login(request):
-    logger.info("login request")
+    print("login request")
     if request.method == 'GET':
         data = request.GET
     elif request.method == 'POST':
@@ -76,8 +76,9 @@ def login(request):
 
     openid = data['openid']
     try:
+        error = False
         uuid = Assisant.get_QRuuid()
-        logger.info("got uuid:%s" % uuid)
+        print("got uuid:%s" % uuid)
         # initial login status
         wc = get_wc(openid=openid)
         if wc:
@@ -88,21 +89,26 @@ def login(request):
         # fork a process to keep checking the login status
         p = Process(target=Assisant.check_login, args=(uuid, openid, ))
         p.daemon = True
-        logger.info("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-        p.start()
+        #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        #p.start()
         return JsonResponse({
             'type': 'uuid',
             'uuid': uuid
         })
     except Exception as e:
-        logger.error("Unknown Exception Occured! %s" % e)
+        error = True
+        print("Unknown Exception Occured! %s" % e)
         return JsonResponse({
             'type': 'error',
             'detail': 'Connection Error'
         })
+    finally:
+        if not error:
+            p = Process(target=Assisant.check_login, args=(uuid, openid, ))
+            p.daemon = True
 
 def loginstatus(request):
-    logger.info("loginstatus request")
+    print("loginstatus request")
     if request.method == 'GET':
         data = request.GET
     elif request.method == 'POST':
@@ -114,19 +120,19 @@ def loginstatus(request):
         if wc:
             status = wc.login_status
             if status == '200':
-                logger.info("client(openid = %s) login successfully" % openid)
+                print("client(openid = %s) login successfully" % openid)
                 return JsonResponse({'code': status})
             elif status == '201':
-                logger.info("waiting client(openid = %s) to confirm on phone" % openid)
+                print("waiting client(openid = %s) to confirm on phone" % openid)
                 return JsonResponse({'code': status})
             elif status == '408':
-                logger.info("client(openid = %s) qrcode is timeout" % openid)
+                print("client(openid = %s) qrcode is timeout" % openid)
                 return JsonResponse({'code': status})
             else:
-                logger.info("not yet receive client's(openid = %s) login status" % openid)
+                print("not yet receive client's(openid = %s) login status" % openid)
                 return JsonResponse({'code': status})
         else:
-            logger.info("No records related to openid = %s" % openid)
+            print("No records related to openid = %s" % openid)
             return JsonResponse({'code': '400'})
     else:
         return JsonResponse({'code': '400'})

@@ -36,6 +36,7 @@ class Message(models.Model):
     group_name = models.CharField(max_length=200, blank=True)
     sender_user_name = models.CharField(max_length=200, blank=True)
     sender_nick_name = models.CharField(max_length=200, blank=True)
+    revoked = models.BooleanField(default=False)
 
     @classmethod
     def create(Message, msg, is_group=False):
@@ -151,6 +152,7 @@ class ShortUrl(models.Model):
 
 # DB operation tool functions
 def get_group(name=None, nick_name=None):
+    close_old_connections()
     if not (name==None and nick_name==None):
         if name:
             group = Group.objects.get(name=name)
@@ -165,6 +167,7 @@ def get_group_nick_name(group_name):
         return group.nick_name
 
 def get_wc(uin=None, user_name=None, openid=None):
+    close_old_connections()
     if not (uin==None and user_name==None and openid==None):
         try:
             if uin:
@@ -182,6 +185,7 @@ def get_wc(uin=None, user_name=None, openid=None):
         return wc
 
 def get_msg(msg_id=None):
+    close_old_connections()
     msg = None
     msg_qs = Message.objects.filter(msg_id=msg_id)
     if msg_qs.count() == 1:
@@ -192,3 +196,10 @@ def get_nick_name(user_name):
     wc = get_wc(user_name=user_name)
     if wc:
         return wc.nick_name
+
+# solve issue: OperationalError: (2006, 'MySQL server has gone away')
+from django.db import connections
+
+def close_old_connections():
+    for conn in connections.all():
+        conn.close_if_unusable_or_obsolete()

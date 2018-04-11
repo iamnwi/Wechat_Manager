@@ -1,13 +1,14 @@
 import sys, logging, time, requests, json, hashlib
-from Wechat_Assisant.models import WechatMP
+from Wechat_Assisant.models import *
 from django.conf import settings
 
 # Get an instance of a logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('web-logger')
 
 def init_mp():
     app_id = settings.MP_APP_ID
     app_secret = settings.MP_APP_SECRET
+    close_old_connections()
     mp, created = WechatMP.objects.update_or_create(app_id=app_id, app_secret=app_secret)
     return mp
 
@@ -24,11 +25,12 @@ def validate(request):
     return False
 
 def get_access_token(mp_app_id):
+    close_old_connections()
     mp = WechatMP.objects.get(app_id=mp_app_id)
     return mp.access_token
 
 def refresh_access_token(mp):
-    logger.info("monitoring access token for MP(appid= %s)" % mp.app_id)
+    print("monitoring access token for MP(appid= %s)" % mp.app_id)
     if not mp.access_token:
         update_access_token(mp)
     time = min(time.time()-mp.access_token_stamp, 3600)
@@ -38,7 +40,7 @@ def refresh_access_token(mp):
         time = 3600
 
 def update_access_token(mp):
-    logger.info("update access token for MP(appid= %s)" % mp.app_id)
+    print("update access token for MP(appid= %s)" % mp.app_id)
     params = {
         'grant_type': 'client_credential',
         'appid': mp.app_id,
@@ -52,8 +54,8 @@ def update_access_token(mp):
     url = 'https://api.weixin.qq.com/cgi-bin/token'
     try:
         res = json.loads(requests.get(url, data=params, verify=False))
-        logger.info("access res: %s" % res)
-        # logger.info("access res[0]: %s, res[1]: %s" % (res[0], res[1]))
+        print("access res: %s" % res)
+        # print("access res[0]: %s, res[1]: %s" % (res[0], res[1]))
         if 'access_token' in res:
             log_info("mp(app_id=%s) received access_token %s(expire %s)" % (mp.app_id, res['access_token'], res['expires_in']))
             mp.access_token = res['access_token']

@@ -6,38 +6,31 @@ import tempfile
 import logging
 
 # ASR
-import speech_recognition as sr
 from pydub import AudioSegment
+from .aliyun_asr.aliyun_voice_asr import sendAsrPost
 
 from .site_package import itchat
 from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
+from django.conf import settings
 
 # Get an instance of a logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('web-logger')
 
 sendFilePrefixDict = {'Attachment': '@fil@', 'Picture': '@img@', 'Video': '@vid@'}
 
-def get_google_credentials():
-	secrete_dir = '/home/www/Wechat_Manager/Wechat_Manager/secret/'
-	with open(secrete_dir + 'GOOGLE_CLOUD_SPEECH_CREDENTIALS', 'r') as f:
-		s = f.read()
-		return s
-
-def audio2text(AUDIO_FILE):
-    # use the audio file as the audio source
-	r = sr.Recognizer()
-	with sr.AudioFile(AUDIO_FILE) as source:
-		audio = r.record(source)  # read the entire audio file
-
-    # recognize speech using Google Cloud Speech
-	GOOGLE_CLOUD_SPEECH_CREDENTIALS = get_google_credentials()
+def audio2text(audio_path, audio_format="pcm", sample_rate="8000"):
+	url = settings.ALIYUN_ASR_URL
+	ak_id = settings.ALIYUN_ACCESS_KEY_ID
+	ak_secret = settings.ALIYUN_ACCESS_KEY_SECRET
 	try:
-		result = r.recognize_google_cloud(audio, language="zh-CN", credentials_json=GOOGLE_CLOUD_SPEECH_CREDENTIALS)
-	except sr.UnknownValueError:
-		result = "Google Cloud Speech could not understand audio"
-	except sr.RequestError as e:
-		result = "Could not request results from Google Cloud Speech service; {0}".format(e)
+		res = sendAsrPost(audio_path, audio_format, sample_rate, url, ak_id, ak_secret)
+		if res.status_code == requests.codes.ok:
+			res_json = json.loads(res.content)
+			result = res_json['result']
+	except Exception as e:
+		print(e)
+		result = "[抱歉，语音转文字功能暂时不可用，请听语音档]"
 	return result
 
 def get_group_notify_context(notify_msg):
@@ -47,6 +40,7 @@ def get_group_notify_context(notify_msg):
 	msg_time = notify_msg.msg_time
 	start = msg_time - 60
 	end = msg_time + 60
+	close_old_connections()
 	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
 											msg_to=to_user_name, msg_time__range=(start, end))
 	# concatenate messages, converting recording to text
@@ -62,7 +56,7 @@ def get_group_notify_context(notify_msg):
 					audio = io.BytesIO(msg.msg_bin)
 					AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
 					result = audio2text(tmp.name)
-					logger.info("group recording ASR result:" + result)
+					print("group recording ASR result:" + result)
 				content = result + '[转文字]'
 			elif msg.msg_type == 'Picture':
 				has_bin = True
@@ -77,7 +71,8 @@ def get_group_notify_context(notify_msg):
 
 # send all groups' notify messages to filehelper
 def assisant_send_group_notify(user_name):
-	logger.info("Send group notify messages to filehelper")
+	print("Send group notify messages to filehelper")
+	close_old_connections()
 	notify_msg_qs = NotifyMessage.objects.filter(to_user_name=user_name)
 	if notify_msg_qs.count()==0:
 		itchat.send(u'没有提及你的群消息', toUserName='filehelper')
@@ -94,21 +89,21 @@ def assisant_send_group_notify(user_name):
 # trigger different assisant functions according to the msg content
 def assisant_control_menue(msg):
 	msg_from = msg['FromUserName']
-	logger.info('received a robot control message')
+	print('received a robot control message')
 	if msg['Type'] == 'Text':
 		msgContent = msg['Text']
 		if msgContent == '@':
 			assisant_send_group_notify(msg_from)
 		else:
-			logger.info('It is an unsupported control message.')
+			print('It is an unsupported control message.')
 	else:
-		logger.info('It is an unsupported type of control message.')
+		print('It is an unsupported type of control message.')
 
 # find display name to the specific user in the group where the message comes from.
 def get_display_name_group(msg, user_name):
 	member_content = re.search(r"<ContactList: \[<ChatroomMember: \{(.*)\}>]>", str(msg))
 	if member_content != None:
-		logger.info(member_content.group(1))
+		print(member_content.group(1))
 		users = re.findall(r"'UserName': '([^']*)", member_content.group(1))
 		displays = re.findall(r"'DisplayName': '([^']*)", member_content.group(1))
 		if users != None and displays != None:
@@ -124,7 +119,7 @@ def get_display_name_group(msg, user_name):
 def check_group_notify(msg, group_name):
 	if not msg['Type']=='Text':
 		return False
-	logger.info('checkGroupNotify')
+	print('checkGroupNotify')
 	msg_content = msg['Content']
 	if '@' in msg_content:
 		if u'@所有人' in msg_content or\
@@ -136,7 +131,7 @@ def check_group_notify(msg, group_name):
 			if u'@'+nick_name in msg_content:
 				return True
 			display_name = get_display_name_group(msg, user_name)
-			logger.info("your display name is %s" % display_name)
+			print("your display name is %s" % display_name)
 			if display_name != None and '@' + display_name in msg_content:
 				return True
 	else:
@@ -151,21 +146,22 @@ def turn_offline():
 	if wc:
 		wc.online = False
 		wc.save()
-		logger.info("[turn_offline] client(uid=%s) turn offline successfully" % (wc.uin))
+		print("[turn_offline] client(uid=%s) turn offline successfully" % (wc.uin))
 		return True
 	return False
 
 #收到note类消息，判断是不是撤回并进行相应操作
 def note_handler(msg):
-	if re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*撤回了一条消息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
-		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
-		or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^you]*recalled a message\.\]\]\>\<\/replacemsg\>", msg['Content']) != None:
+	#if re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*撤回了一条消息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
+	#	or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
+	#	or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^you]*recalled a message\.\]\]\>\<\/replacemsg\>", msg['Content']) != None:
+	if msg['MsgType'] == 10002:
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
 		showntime = time.ctime(int(revoked_msg.msg_time))
 		from_nick_name = itchat.search_friends(userName=msg['FromUserName'])['NickName']
 
-		logger.info("%s revoked a msg: %s" % (from_nick_name, revoked_msg.msg_type))
+		print("%s revoked a msg: %s" % (from_nick_name, revoked_msg.msg_type))
 		msg_send = u"您的好友：" \
 				   + from_nick_name \
 				   + u"  在 [" + showntime \
@@ -189,7 +185,7 @@ def note_handler(msg):
 				audio = io.BytesIO(revoked_msg.msg_bin)
 				AudioSegment.from_mp3(audio).export(tmp.name, format='wav')
 				result = audio2text(tmp.name)
-				logger.info("ASR result:" + result)
+				print("ASR result:" + result)
 				msg_send += u'\n' + result
 				msg_send += u"\n(以上语音转文字后的结果，如有需要请查听以下的语音档)"
 			sendMsgPrefix = sendFilePrefixDict['Attachment']
@@ -207,7 +203,9 @@ def note_handler(msg):
 				os.rename(tmp.name, newPath)
 				r = itchat.send('%s%s' % (sendMsgPrefix, newPath), toUserName='filehelper')
 				os.rename(newPath, tmp.name)
-				logger.info(r)
+				print(r)
+		revoked_msg.revoked = True
+		revoked_msg.save()
 
 #将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
 #没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
@@ -228,13 +226,14 @@ def msg_handler(msg):
 	if WechatClient.objects.filter(user_name=msg['ToUserName']).count() == 0:
 		return
 
-	logger.info('%s received a msg' % get_nick_name(msg['ToUserName']))
+	print('%s received a msg' % get_nick_name(msg['ToUserName']))
 
 	if msg['Type'] == 'Note':
 		note_handler(msg)
 		return
 
 	# insert this msg to DB
+	close_old_connections()
 	msg_obj = Message.create(msg);
 	msg_obj.save()
 
@@ -248,11 +247,12 @@ def HandleGroupMsg(msg):
         # drop the one send from the cilent and receive by the group(which to user is the group itself)
 	if '@@' in msg['ToUserName']:
 		return
-	logger.info('%s received a group msg' % get_nick_name(msg['ToUserName']))
+	print('%s received a group msg' % get_nick_name(msg['ToUserName']))
 
 	# initial a group or update nick name of a gorup
 	group_name = msg['FromUserName']
 	group_nick_name = msg['User']['NickName']
+	close_old_connections()
 	group_qs = Group.objects.filter(name=msg['FromUserName'])
 	if group_qs.count() == 0:
 		group_obj = Group(name=group_name, nick_name=group_nick_name)
@@ -263,6 +263,7 @@ def HandleGroupMsg(msg):
 		group_obj.save()
 
 	# create messages model
+	close_old_connections()
 	msg_obj = Message.create(msg, is_group=True);
 	msg_obj.save()
 
@@ -270,6 +271,7 @@ def HandleGroupMsg(msg):
 	if check_group_notify(msg, group_name):
 		to_user_name = msg['ToUserName']
 		msg_time = msg['CreateTime']
+		close_old_connections()
 		notify_msg = NotifyMessage(to_user_name=to_user_name, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
-		logger.info('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
+		print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))

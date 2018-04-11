@@ -6,7 +6,7 @@ from django.conf import settings
 from .wechatmputils import *
 from ..views import push
 from .bitly import *
-from Wechat_Assisant.models import ShortUrl
+from Wechat_Assisant.models import *
 # mp
 from multiprocessing import Process
 
@@ -43,6 +43,7 @@ Input 'login'"""
     def mp_login(message):
         from_openid = message.source
         # otain short url from existed records or create a new record
+        close_old_connections()
         qs = ShortUrl.objects.filter(openid=from_openid)
         if qs.exists():
             s_url = qs.get(openid=from_openid).login_url

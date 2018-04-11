@@ -18,7 +18,7 @@ from Wechat_Assisant.models import *
 from multiprocessing import Process
 
 # Get an instance of a logger
-logger = logging.getLogger(__name__)
+logger = logging.getLogger('web-logger')
 
 class Assisant():
     def __init__(self, openid):
@@ -31,11 +31,12 @@ class Assisant():
         uin = (itchat.search_friends())['Uin']
         user_name = (itchat.search_friends())['UserName']
         nick_name = (itchat.search_friends())['NickName']
-        logger.info("login info: uin=%s, NickName=%s" % (uin, nick_name));
-        logger.info("host=%s" % host)
+        print("login info: uin=%s, NickName=%s" % (uin, nick_name));
+        print("host=%s" % host)
         new_values = {'openid': self.openid, 'uin': uin, 'user_name':user_name, 'nick_name':nick_name, 'online':True,\
                     'webwxuvid':cookies_dict['webwxuvid'], 'webwx_auth_ticket':cookies_dict['webwx_auth_ticket'],\
                     'host':host}
+        close_old_connections()
         wc, created = WechatClient.objects.update_or_create(openid=self.openid,defaults=new_values,)
 
     def run(self):
@@ -51,12 +52,12 @@ class Assisant():
     def run_assisant(uuid, openid):
         assisant = Assisant(openid)
         assisant.uuid = uuid
-        logger.info("client(uuid:%s) logined! run..." % assisant.uuid)
+        print("client(uuid:%s) logined! run..." % assisant.uuid)
         assisant.run()
 
     @staticmethod
     def check_login(uuid, openid):
-        logger.info('check login status for uuid = %s', uuid)
+        print('check login status for uuid = %s' % uuid)
         isLoggedIn = False
         wc = get_wc(openid=openid)
         while not isLoggedIn:
@@ -67,12 +68,12 @@ class Assisant():
                 wc.save()
             elif status == '201':
                 if isLoggedIn is not None:
-                    logger.info('(uuid=%s)Please press confirm on your phone.' % uuid)
+                    print('(uuid=%s)Please press confirm on your phone.' % uuid)
                     isLoggedIn = None
                     wc.login_status = 201
                     wc.save()
             else:
-                logger.info('(uuid=%s)QR code Time out.' % uuid)
+                print('(uuid=%s)QR code Time out.' % uuid)
                 wc.login_status = 408
                 wc.save()
                 break
