@@ -14,6 +14,9 @@ from .site_package.itchat.content import *
 from .assisantutils import *
 from Wechat_Assisant.models import *
 
+# Django
+from django.conf import settings
+
 # mp
 from multiprocessing import Process
 
@@ -41,6 +44,7 @@ class Assisant():
 
     def run(self):
         self.init_client()
+        itchat.send(settings.LOGIN_WELCOME_MSG, toUserName='filehelper')
         itchat.run()
 
     @staticmethod
