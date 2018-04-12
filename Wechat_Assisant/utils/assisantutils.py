@@ -152,10 +152,12 @@ def turn_offline():
 
 #收到note类消息，判断是不是撤回并进行相应操作
 def note_handler(msg):
-	#if re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*撤回了一条消息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
-	#	or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^你]*回收一則訊息\]\]\>\<\/replacemsg\>", msg['Content']) != None \
-	#	or re.search(r"\<replacemsg\>\<\!\[CDATA\[[^you]*recalled a message\.\]\]\>\<\/replacemsg\>", msg['Content']) != None:
 	if msg['MsgType'] == 10002:
+		# check weather it is a revoking note msg send from wechat system to the revoked
+		# which means I ignore revoking note like "you revoked a message"
+		for you in settings.YOU_DICT:
+			if you in msg['Text']:
+				return
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
 		showntime = time.ctime(int(revoked_msg.msg_time))
