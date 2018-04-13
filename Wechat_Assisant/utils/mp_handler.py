@@ -29,13 +29,13 @@ def run_mp():
         if re.match('login', message.content, re.IGNORECASE):
             push_res = mp_pushlogin(message)
             if push_res:
-                rely_text = 'please wait and comfirm login on you phone'
+                rely_text = settings.MP_COMFIRM_LOGIN
                 return rely_text
             else:
                 return mp_login(message)
         elif re.match('function', message.content, re.IGNORECASE):
             return settings.MP_FUNCTION
-        else re.match('how', message.content, re.IGNORECASE):
+        elif re.match('how', message.content, re.IGNORECASE):
             return settings.MP_HOW_LOGIN
         else:
             return settings.MP_HELP
@@ -53,7 +53,7 @@ def run_mp():
             obj = ShortUrl(openid=from_openid, login_url=s_url)
             obj.save()
         # create reply msg
-        rely_text = 'please use another device to browse the webpage %s to finish login' % s_url
+        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_LINK, s_url)
         return rely_text
 
     def mp_pushlogin(message):
