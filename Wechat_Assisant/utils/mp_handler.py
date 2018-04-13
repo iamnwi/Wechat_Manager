@@ -19,14 +19,10 @@ def run_mp():
     mp_robot = WeRoBot(token=settings.MP_TOKEN)
     mp_robot.config["APP_ID"] = settings.MP_APP_ID
     mp_robot.config["APP_SECRET"] = settings.MP_APP_SECRET
-    greet = "Hi, nice to meet you! Why don't you input 'login' to enjoy our service? :)"
-    help_menue = \
-    """Oh, I bet you feel confused now. Actually, only one thing you need to do currently:
-Input 'login'"""
 
     @mp_robot.subscribe
     def subscribe(message):
-        return 'Hello My Friend!'
+        return settings.MP_GREET
 
     @mp_robot.text
     def text_reply(message):
@@ -37,8 +33,12 @@ Input 'login'"""
                 return rely_text
             else:
                 return mp_login(message)
+        elif re.match('function', message.content, re.IGNORECASE):
+            return settings.MP_FUNCTION
+        else re.match('how', message.content, re.IGNORECASE):
+            return settings.MP_HOW_LOGIN
         else:
-            return help_menue
+            return settings.MP_HELP
 
     def mp_login(message):
         from_openid = message.source
