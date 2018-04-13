@@ -57,53 +57,11 @@
       return decodeURIComponent(results[2].replace(/\+/g, " "));
     }
 
-    function ws_login() {
-      var wsUri = 'ws://' + window.location.host + '/wslogin'
-      websocket = new WebSocket(wsUri);
-      websocket.onopen = function(evt) {
-        console.log(evt);
-        websocket.send(JSON.stringify({
-          type: 'login',
-          openid: getParameterByName('openid'),
-        }));
-      };
-      websocket.onclose = function(evt) {
-        console.log(evt);
-      };
-      websocket.onmessage = function(evt) {
-        console.log("/on message");
-        console.log(evt);
-        console.log("on message/");
-        data = JSON.parse(evt.data);
-        if (data['type'] == "error") {
-          console.log("error: " + data['detail'])
-          show_msg("服务器繁忙，请刷新");
-        }
-        else if (data['type'] == "uuid") {
-          console.log("uuid = " + data['uuid'])
-          var text = "https://login.weixin.qq.com/l/" + data['uuid'];
-          jQuery(function() {
-              $('#qr_output').qrcode({
-                width: 256,
-                height: 256,
-                text: text
-              });
-          });
-          show_msg("请使用手机微信扫码登录");
-          setTimeout(function() {check_login()}, 1000);
-        }
-      };
-      websocket.onerror = function(evt) {
-        console.log("Error!");
-        show_msg("服务器繁忙，请刷新");
-      };
-    }
-
     function login() {
+      // get uuid from server and generate QR code on webpage
       openid = getParameterByName('openid')
-      var url = "http://"+window.location.host+"/Wechat_Assisant/login?openid=" + openid;
-      // var url = "http://60.205.223.152/Wechat_Assisant/login?openid=" + openid;
-      fetch(url, {method: 'GET'})
+      var uuid_url = "http://"+window.location.host+"/Wechat_Assisant/getuuid?openid=" + openid;
+      fetch(uuid_url, {method: 'GET'})
       .then(function(response) {
         console.log(response.headers)
         return response.json();
@@ -117,7 +75,14 @@
                                     height: 256,
                                     text: text});
           show_msg("请使用手机微信扫码登录");
-          setTimeout(function() {check_login()}, 1000);
+          // toggle login on server
+          login_url = "http://"+window.location.host+"/Wechat_Assisant/login?openid="+openid+"&uuid="+data.uuid;
+          fetch(login_url, {method: 'GET'}).
+          then(function(response) {
+            console.log(response.json())
+          })
+          // checking login status and reflecting it on webpage
+          setTimeout(function() {check_login(data.uuid)}, 2000);
         }
         else {
           show_msg("服务器繁忙，请刷新");
@@ -125,10 +90,10 @@
       })
     }
 
-    function check_login() {
+    // checking login status and reflecting it on webpage
+    function check_login(uuid) {
       openid = getParameterByName('openid')
-      var url = "http://"+window.location.host+"/Wechat_Assisant/loginstatus?openid="+openid;
-      // var url = "http://60.205.223.152/Wechat_Assisant/loginstatus?openid="+openid;
+      var url = "http://"+window.location.host+"/Wechat_Assisant/loginstatus?openid="+openid+"&uuid="+uuid;
       fetch(url, {method: 'GET',})
       .then(function(response) {
         console.log(response.headers)
@@ -141,15 +106,13 @@
         }
         else if (data.code == "201") {
           show_msg("请在手机微信上确认登录");
-          setTimeout(function() {check_login()}, 3000);
-        }
-        else if (data.code == "408") {
-          show_msg("二维码过期，请刷新网页");
+          setTimeout(function() {check_login(uuid)}, 2000);
         }
         else if (data.code == "0") {
-          setTimeout(function() {check_login()}, 3000);
+          setTimeout(function() {check_login(uuid)}, 2000);
         }
         else {
+          show_msg("二维码过期，请刷新网页");
           console.log('unknow status of login')
         }
       });
@@ -162,7 +125,7 @@
 
     $(document).ready(function() {
       show_msg("正在获收登入二维码...");
-      ws_login();
+      login();
     });
   </script>
 </head>

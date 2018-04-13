@@ -12,24 +12,25 @@ from .utils.wechatmputils import *
 import time
 import base64
 import hashlib
-import logging
+# import signal
 
 # mp
 from multiprocessing import Process
+# process_ls = []
 
 # Get an instance of a logger
-logger = logging.getLogger('web-logger')
+import logging
+logger = logging.getLogger(__name__)
 
 def push(openid):
     wc = get_wc(openid=openid)
     if wc:
-        assistant = Assisant(openid)
         try:
-            uuid = assistant.login_returned_client(wc)
+            uuid = Assistant.login_returned_client(wc)
         except:
             print("Unknown Exception Occured During Getting Push Login uuid!")
             return False
-        p = Process(target=run_returned_assistant, args=(assistant, ))
+        p = Process(target=run_returned_assistant, args=(openid, uuid,))
         p.daemon = True
         print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
         p.start()
@@ -37,12 +38,20 @@ def push(openid):
     print("cannot find cookies of client(openid:%s)" % (openid))
     return False
 
-def run_returned_assistant(assistant):
-    print("check login status of client(uuid:%s)" % assistant.uuid)
-    logined = assistant.check_login(assistant.uuid, assistant.openid)
+def run_returned_assistant(openid, uuid):
+    print("check login status of client(uuid:%s)" % uuid)
+    logined = Assistant.check_login(uuid, openid)
     if logined:
-        print("client(uuid:%s) logined! run..." % assistant.uuid)
-        assistant.run()
+        print("client(uuid:%s, openid:%s) logined! run..." % (assistant.uuid, assistant.openid))
+        Assisant.run_assisant(uuid, openid)
+
+# def interrupt_handler(signal, frame):
+#         print('Admin pressed Ctrl+C! Killing all processes...')
+#
+#         print('Done! Exit.')
+#         sys.exit(0)
+
+# signal.signal(signal.SIGINT, interrupt_handler)
 
 # Create your views here.
 def index(request):
@@ -74,38 +83,63 @@ def login(request):
     elif request.method == 'POST':
         data = request.POST
 
-    openid = data['openid']
-    try:
-        error = False
-        uuid = Assisant.get_QRuuid()
-        print("got uuid:%s" % uuid)
+    if 'uuid' in data and 'openid' in data:
+        openid = data['openid']
+        uuid = data['uuid']
         # initial login status
         wc = get_wc(openid=openid)
         if wc:
             wc.login_status = 0
         else:
+            close_old_connections()
             wc = WechatClient(openid=openid)
         wc.save()
+        logined = Assisant.check_login(uuid, openid)
+        if logined:
+            p = Process(target=Assisant.run_assisant, args=(uuid, openid,))
+            p.daemon = True
+            print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+            p.start()
+            return JsonResponse({'code': '200'})
+        return JsonResponse({'code': '500'})
+    else:
+        return JsonResponse({'code': '400'})
+
+def getuuid(request):
+    print("get uuid request")
+    if request.method == 'GET':
+        data = request.GET
+    elif request.method == 'POST':
+        data = request.POST
+
+    openid = data['openid']
+    try:
+        uuid = Assisant.get_QRuuid(openid)
+        print("got uuid:%s" % uuid)
+        # # initial login status
+        # wc = get_wc(openid=openid)
+        # if wc:
+        #     wc.login_status = 0
+        # else:
+        #     wc = WechatClient(openid=openid)
+        # wc.save()
         # fork a process to keep checking the login status
-        p = Process(target=Assisant.check_login, args=(uuid, openid, ))
-        p.daemon = True
-        #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-        #p.start()
+        # p = Process(target=Assisant.check_login, args=(uuid, openid, ))
+        # p.daemon = True
+        # print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        # p.start()
         return JsonResponse({
+            'code': '200',
             'type': 'uuid',
             'uuid': uuid
         })
     except Exception as e:
-        error = True
         print("Unknown Exception Occured! %s" % e)
         return JsonResponse({
+            'code': '500',
             'type': 'error',
             'detail': 'Connection Error'
         })
-    finally:
-        if not error:
-            p = Process(target=Assisant.check_login, args=(uuid, openid, ))
-            p.daemon = True
 
 def loginstatus(request):
     print("loginstatus request")
@@ -113,6 +147,22 @@ def loginstatus(request):
         data = request.GET
     elif request.method == 'POST':
         data = request.POST
+
+    # if 'uuid' in data and 'openid' in data:
+    #     uuid = data['uuid']
+    #     openid = data['openid']
+    #     status = Assisant.check_login_once(uuid)
+    #     if status == '200':
+    #         print("[views.loginstatus][status %s] client(openid=%s, uuid=%s) login successfully" % (status, openid, uuid))
+    #         return JsonResponse({'code': status})
+    #     elif status == '201':
+    #         print("[views.loginstatus][status %s] waiting client(openid=%s, uuid=%s) to confirm on phone" % (status, openid, uuid))
+    #         return JsonResponse({'code': status})
+    #     else:
+    #         print("[views.loginstatus][status %s] client(openid=%s, uuid=%s) qrcode is timeout" % (status, openid, uuid))
+    #         return JsonResponse({'code': status})
+    # else:
+    #     return JsonResponse({'code': '400'})
 
     if 'openid' in data:
         openid = data['openid']

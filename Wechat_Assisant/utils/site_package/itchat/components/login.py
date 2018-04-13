@@ -88,7 +88,7 @@ def login(self, enableCmdQR=False, picDir=None, qrCallback=None,
     self.start_receiving(exitCallback)
     self.isLogging = False
 
-def set_login(self, loginCallback=None, exitCallback=None):
+def set_login(self, openid, loginCallback=None, exitCallback=None):
     logger.info('Loading the contact, this may take a little while.')
     self.web_init()
     self.show_mobile_login()
@@ -96,7 +96,7 @@ def set_login(self, loginCallback=None, exitCallback=None):
     if hasattr(loginCallback, '__call__'):
         r = loginCallback()
     logger.info('Login successfully as %s' % self.storageClass.nickName)
-    self.start_receiving(exitCallback)
+    self.start_receiving(openid, exitCallback=exitCallback)
     self.isLogging = False
     return self.s, self.loginInfo['url']
 
@@ -273,7 +273,7 @@ def show_mobile_login(self):
     r = self.s.post(url, data=json.dumps(data), headers=headers)
     return ReturnValue(rawResponse=r)
 
-def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
+def start_receiving(self, openid, exitCallback=None, getReceivingFnOnly=False):
     self.alive = True
     def maintain_loop():
         retryCount = 0
@@ -312,7 +312,7 @@ def start_receiving(self, exitCallback=None, getReceivingFnOnly=False):
                 else:
                     time.sleep(1)
         if hasattr(exitCallback, '__call__'):
-            exitCallback()
+            exitCallback(openid)
         self.logout()
         logger.info('LOG OUT!')
     if getReceivingFnOnly:
@@ -383,11 +383,11 @@ def logout(self):
         headers = { 'User-Agent' : config.USER_AGENT }
         self.s.get(url, params=params, headers=headers)
         self.alive = False
-    # self.isLogging = False
-    # self.s.cookies.clear()
-    # del self.chatroomList[:]
-    # del self.memberList[:]
-    # del self.mpList[:]
+    self.isLogging = False
+    self.s.cookies.clear()
+    del self.chatroomList[:]
+    del self.memberList[:]
+    del self.mpList[:]
     return ReturnValue({'BaseResponse': {
         'ErrMsg': 'logout successfully.',
         'Ret': 0, }})
