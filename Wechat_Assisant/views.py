@@ -12,6 +12,7 @@ from .utils.wechatmputils import *
 import time
 import base64
 import hashlib
+import traceback
 # import signal
 
 # mp
@@ -26,9 +27,10 @@ def push(openid):
     wc = get_wc(openid=openid)
     if wc:
         try:
-            uuid = Assistant.login_returned_client(wc)
-        except:
+            uuid = Assisant.login_returned_client(wc, openid)
+        except Exception as e:
             print("Unknown Exception Occured During Getting Push Login uuid!")
+            traceback.print_exc()
             return False
         p = Process(target=run_returned_assistant, args=(openid, uuid,))
         p.daemon = True
@@ -40,7 +42,7 @@ def push(openid):
 
 def run_returned_assistant(openid, uuid):
     print("check login status of client(uuid:%s)" % uuid)
-    logined = Assistant.check_login(uuid, openid)
+    logined = Assisant.check_login(uuid, openid)
     if logined:
         print("client(uuid:%s, openid:%s) logined! run..." % (assistant.uuid, assistant.openid))
         Assisant.run_assisant(uuid, openid)
