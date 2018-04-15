@@ -109,7 +109,7 @@ def get_display_name_group(msg, user_name):
 		if users != None and displays != None:
 			user2nick = dict(zip(users, displays))
 			for (user, nick) in user2nick.items():
-				if user == user_name:
+				if user == user_name and nick != '':
 					return nick
 
 # check whether it is a notify message
