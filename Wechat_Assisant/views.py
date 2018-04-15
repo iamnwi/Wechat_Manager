@@ -47,6 +47,14 @@ def run_returned_assistant(openid, uuid):
         print("client(uuid:%s, openid:%s) logined! run..." % (assistant.uuid, assistant.openid))
         Assisant.run_assisant(uuid, openid)
 
+def kick():
+    print("admin requested to log out all online clients. Kicking...")
+    for openid, assistant in Assisant.instance_dict.items():
+        ins = assistant.itchat_ins
+        print("send logout-by-admin msg to client(openid=%s) and logout" % openid)
+        ins.send(settings.LOGOUT_BY_ADMIN_MSG, toUserName='filehelper')
+        ins.logout()
+
 # def interrupt_handler(signal, frame):
 #         print('Admin pressed Ctrl+C! Killing all processes...')
 #

@@ -4,7 +4,7 @@ from werobot import WeRoBot
 
 from django.conf import settings
 from .wechatmputils import *
-from ..views import push
+from ..views import push, kick
 from .bitly import *
 from Wechat_Assisant.models import *
 # mp
@@ -37,6 +37,10 @@ def run_mp():
             return settings.MP_FUNCTION
         elif re.match('how', message.content, re.IGNORECASE):
             return settings.MP_HOW_LOGIN
+        elif re.match('kick', message.content, re.IGNORECASE) \
+                and message.source == settings.ADMIN_OPENID:
+            mp_kick()
+            return "Done"
         else:
             return settings.MP_HELP
 
@@ -53,12 +57,15 @@ def run_mp():
             obj = ShortUrl(openid=from_openid, login_url=s_url)
             obj.save()
         # create reply msg
-        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_LINK, s_url)
+        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_INK, s_url)
         return rely_text
 
     def mp_pushlogin(message):
         from_openid = message.source
         return push(from_openid)
+
+    def mp_kick():
+        kick()
 
     return mp_robot
 
