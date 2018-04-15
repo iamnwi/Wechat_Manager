@@ -14,6 +14,7 @@ import base64
 import hashlib
 import traceback
 # import signal
+import _thread
 
 # mp
 from multiprocessing import Process
@@ -32,10 +33,11 @@ def push(openid):
             print("Unknown Exception Occured During Getting Push Login uuid!")
             traceback.print_exc()
             return False
-        p = Process(target=run_returned_assistant, args=(openid, uuid,))
-        p.daemon = True
-        print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-        p.start()
+        _thread.start_new_thread(run_returned_assistant, (openid, uuid, ))
+        #p = Process(target=run_returned_assistant, args=(openid, uuid,))
+        #p.daemon = True
+        #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+        #p.start()
         return True
     print("cannot find cookies of client(openid:%s)" % (openid))
     return False
@@ -44,15 +46,21 @@ def run_returned_assistant(openid, uuid):
     print("check login status of client(uuid:%s)" % uuid)
     logined = Assisant.check_login(uuid, openid)
     if logined:
-        print("client(uuid:%s, openid:%s) logined! run..." % (assistant.uuid, assistant.openid))
+        print("client(uuid:%s, openid:%s) logined! run..." % (uuid, openid))
         Assisant.run_assisant(uuid, openid)
 
 def kick():
     print("admin requested to log out all online clients. Kicking...")
-    for openid, assistant in Assisant.instance_dict.items():
+    if Assisant.instance_dict is None:
+        print("instance dict is EMPTY!")
+    print(len(Assisant.instance_dict))
+    for openid in list(Assisant.instance_dict.keys()):
+        assistant = Assisant.instance_dict[openid]
         ins = assistant.itchat_ins
-        print("send logout-by-admin msg to client(openid=%s) and logout" % openid)
+        uin = (ins.search_friends())['Uin']
+        print("send logout-by-admin msg to client(openid=%s, uin=%s) and logout" % (openid, uin))
         ins.send(settings.LOGOUT_BY_ADMIN_MSG, toUserName='filehelper')
+        print("sent and now logout")
         ins.logout()
 
 # def interrupt_handler(signal, frame):
@@ -106,10 +114,11 @@ def login(request):
         wc.save()
         logined = Assisant.check_login(uuid, openid)
         if logined:
-            p = Process(target=Assisant.run_assisant, args=(uuid, openid,))
-            p.daemon = True
-            print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-            p.start()
+            _thread.start_new_thread(Assisant.run_assisant, (uuid, openid, ))
+            #p = Process(target=Assisant.run_assisant, args=(uuid, openid,))
+            #p.daemon = True
+            #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
+            #p.start()
             return JsonResponse({'code': '200'})
         return JsonResponse({'code': '500'})
     else:

@@ -57,7 +57,7 @@ def run_mp():
             obj = ShortUrl(openid=from_openid, login_url=s_url)
             obj.save()
         # create reply msg
-        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_INK, s_url)
+        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_LINK, s_url)
         return rely_text
 
     def mp_pushlogin(message):
