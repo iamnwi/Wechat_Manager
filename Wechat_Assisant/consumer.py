@@ -1,5 +1,6 @@
 import json
 import logging
+import traceback
 
 from channels.generic.websocket import WebsocketConsumer
 from Wechat_Assisant.models import *
@@ -7,6 +8,8 @@ from .utils.assisant import Assisant
 
 # mp
 from multiprocessing import Process
+# mt
+import threading
 
 # Get an instance of a logger
 logger = logging.getLogger(__name__)
@@ -16,7 +19,7 @@ class WechatConsumer(WebsocketConsumer):
         logger.info("login request")
         logger.info("get uuid")
         try:
-            uuid = Assisant.get_QRuuid()
+            uuid = Assisant.get_QRuuid(openid)
             logger.info("got uuid:%s" % uuid)
             # initial login status
             wc = get_wc(openid=openid)
@@ -31,12 +34,28 @@ class WechatConsumer(WebsocketConsumer):
                 'type': 'uuid',
                 'uuid': uuid
             }))
-            p = Process(target=Assisant.check_login, args=(uuid, openid, ))
-            p.daemon = True
-            logger.info("fork a worker process for client(uuid:%s)" % uuid)
-            p.start()
-        except:
+            # initial login status
+            wc = get_wc(openid=openid)
+            if wc:
+                wc.login_status = 0
+            else:
+                close_old_connections()
+                wc = WechatClient(openid=openid)
+            wc.save()
+            # check login status and run itchat if client login successfully
+            logined = Assisant.check_login(uuid, openid)
+            if logined:
+                t = threading.Thread(target=Assisant.run_assisant, args=(uuid, openid,))
+                t.daemon = True
+                print("fork a worker thread for client(openid:%s, uuid:%s)" % (openid, uuid))
+                t.start()
+            # p = Process(target=Assisant.check_login, args=(uuid, openid, ))
+            # p.daemon = True
+            # logger.info("fork a worker process for client(uuid:%s)" % uuid)
+            # p.start()
+        except Exception as e:
             logger.error("Unknown Exception Occured!")
+            traceback.print_exc()
             self.send(text_data=json.dumps({
                 'type': 'error',
                 'detail': 'Connection Error'

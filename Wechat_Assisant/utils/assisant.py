@@ -103,6 +103,14 @@ class Assisant():
         uuid = assistant.itchat_ins.push_login(wc=wc)
         return uuid
 
+    @staticmethod
+    def run_returned_client(openid, uuid):
+        print("check login status of client(uuid:%s)" % uuid)
+        logined = Assisant.check_login(uuid, openid)
+        if logined:
+            print("client(uuid:%s, openid:%s) logined! run..." % (uuid, openid))
+            Assisant.run_assisant(uuid, openid)
+
     # call back fuction
     # provoked when a user log out
     # turn his/her on-line status to off-line

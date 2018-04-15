@@ -13,12 +13,11 @@ import time
 import base64
 import hashlib
 import traceback
-# import signal
-import _thread
 
 # mp
 from multiprocessing import Process
-# process_ls = []
+# mt
+import threading
 
 # Get an instance of a logger
 import logging
@@ -33,21 +32,13 @@ def push(openid):
             print("Unknown Exception Occured During Getting Push Login uuid!")
             traceback.print_exc()
             return False
-        _thread.start_new_thread(run_returned_assistant, (openid, uuid, ))
-        #p = Process(target=run_returned_assistant, args=(openid, uuid,))
-        #p.daemon = True
-        #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-        #p.start()
+        t = threading.Thread(target=Assisant.run_returned_client, args=(uuid, openid,))
+        t.daemon = True
+        print("fork a worker thread for client(openid:%s, uuid:%s)" % (openid, uuid))
+        t.start()
         return True
     print("cannot find cookies of client(openid:%s)" % (openid))
     return False
-
-def run_returned_assistant(openid, uuid):
-    print("check login status of client(uuid:%s)" % uuid)
-    logined = Assisant.check_login(uuid, openid)
-    if logined:
-        print("client(uuid:%s, openid:%s) logined! run..." % (uuid, openid))
-        Assisant.run_assisant(uuid, openid)
 
 def kick():
     print("admin requested to log out all online clients. Kicking...")
@@ -62,14 +53,6 @@ def kick():
         ins.send(settings.LOGOUT_BY_ADMIN_MSG, toUserName='filehelper')
         print("sent and now logout")
         ins.logout()
-
-# def interrupt_handler(signal, frame):
-#         print('Admin pressed Ctrl+C! Killing all processes...')
-#
-#         print('Done! Exit.')
-#         sys.exit(0)
-
-# signal.signal(signal.SIGINT, interrupt_handler)
 
 # Create your views here.
 def index(request):
@@ -114,11 +97,10 @@ def login(request):
         wc.save()
         logined = Assisant.check_login(uuid, openid)
         if logined:
-            _thread.start_new_thread(Assisant.run_assisant, (uuid, openid, ))
-            #p = Process(target=Assisant.run_assisant, args=(uuid, openid,))
-            #p.daemon = True
-            #print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-            #p.start()
+            t = threading.Thread(target=Assisant.run_assisant, args=(uuid, openid,))
+            t.daemon = True
+            print("fork a worker thread for client(openid:%s, uuid:%s)" % (openid, uuid))
+            t.start()
             return JsonResponse({'code': '200'})
         return JsonResponse({'code': '500'})
     else:
@@ -135,18 +117,6 @@ def getuuid(request):
     try:
         uuid = Assisant.get_QRuuid(openid)
         print("got uuid:%s" % uuid)
-        # # initial login status
-        # wc = get_wc(openid=openid)
-        # if wc:
-        #     wc.login_status = 0
-        # else:
-        #     wc = WechatClient(openid=openid)
-        # wc.save()
-        # fork a process to keep checking the login status
-        # p = Process(target=Assisant.check_login, args=(uuid, openid, ))
-        # p.daemon = True
-        # print("fork a worker process for client(openid:%s, uuid:%s)" % (openid, uuid))
-        # p.start()
         return JsonResponse({
             'code': '200',
             'type': 'uuid',
@@ -166,22 +136,6 @@ def loginstatus(request):
         data = request.GET
     elif request.method == 'POST':
         data = request.POST
-
-    # if 'uuid' in data and 'openid' in data:
-    #     uuid = data['uuid']
-    #     openid = data['openid']
-    #     status = Assisant.check_login_once(uuid)
-    #     if status == '200':
-    #         print("[views.loginstatus][status %s] client(openid=%s, uuid=%s) login successfully" % (status, openid, uuid))
-    #         return JsonResponse({'code': status})
-    #     elif status == '201':
-    #         print("[views.loginstatus][status %s] waiting client(openid=%s, uuid=%s) to confirm on phone" % (status, openid, uuid))
-    #         return JsonResponse({'code': status})
-    #     else:
-    #         print("[views.loginstatus][status %s] client(openid=%s, uuid=%s) qrcode is timeout" % (status, openid, uuid))
-    #         return JsonResponse({'code': status})
-    # else:
-    #     return JsonResponse({'code': '400'})
 
     if 'openid' in data:
         openid = data['openid']
