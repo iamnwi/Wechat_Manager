@@ -1,11 +1,11 @@
 # -*- coding:utf8 -*-
 import re
+import requests
 from werobot import WeRoBot
 
 from django.conf import settings
 from .wechatmputils import *
 from ..views import push, kick
-from .bitly import *
 from Wechat_Assisant.models import *
 # mp
 from multiprocessing import Process
@@ -45,17 +45,12 @@ def run_mp():
             return settings.MP_HELP
 
     def mp_login(message):
-        from_openid = message.source
         # otain short url from existed records or create a new record
+        from_openid = message.source
         close_old_connections()
-        qs = ShortUrl.objects.filter(openid=from_openid)
-        if qs.exists():
-            s_url = qs.get(openid=from_openid).login_url
-        else:
-            url = 'http://60.205.223.152/Wechat_Assisant/index?openid=%s' % from_openid
-            s_url = shorten(url)
-            obj = ShortUrl(openid=from_openid, login_url=s_url)
-            obj.save()
+        url, created = ShortUrl.objects.get_or_create(openid=from_openid)
+        sid = url.id + 10000
+        s_url = 'http://%s/wm/%s' % (settings.WECHAT_MANAGER_SERVER, sid)
         # create reply msg
         rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_LINK, s_url)
         return rely_text

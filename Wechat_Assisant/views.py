@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpResponse
 from django.http import JsonResponse
+from django.conf import settings
 
 from Wechat_Assisant.models import *
 from .utils.assisant import Assisant
@@ -57,6 +58,20 @@ def kick():
 # Create your views here.
 def index(request):
     return render(request, 'index.html', {})
+
+def extend(request, sid=None):
+    if sid is None:
+        return HttpResponse('400')
+
+    sid = int(sid) - 10000
+    close_old_connections()
+    url_qs = ShortUrl.objects.filter(id=sid)
+    if url_qs.exists():
+        openid = url_qs.get(id=sid).openid
+        url = "http://%s/wm/index?openid=%s" % (settings.WECHAT_MANAGER_SERVER, openid)
+        return redirect(url)
+    else:
+        return HttpResponse('400')
 
 def pushlogin(request):
     if request.method == 'GET':

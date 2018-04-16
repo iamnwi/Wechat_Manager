@@ -11,4 +11,5 @@ urlpatterns = [
     url(r'^(?i)loginstatus$', views.loginstatus, name='loginstatus'),
     url(r'^(?i)wxmp', make_view(mp_robot), name='mp_robot'),
     url(r'^(?i)getuuid$', views.getuuid, name='getuuid'),
+    url(r'^(?P<sid>[0-9]+)$', views.extend, name='extend'),
 ]

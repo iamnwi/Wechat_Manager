@@ -17,6 +17,6 @@ from django.conf.urls import url, include
 from django.contrib import admin
 
 urlpatterns = [
-    url(r'^Wechat_Assisant/', include('Wechat_Assisant.urls')),
+    url(r'^wm/', include('Wechat_Assisant.urls')),
     url(r'^admin/', admin.site.urls),
 ]

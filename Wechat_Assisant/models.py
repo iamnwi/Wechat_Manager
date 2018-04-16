@@ -146,10 +146,10 @@ class WechatMP(models.Model):
 
 class ShortUrl(models.Model):
     openid = models.CharField(max_length=200)
-    login_url = models.CharField(max_length=30)
+    # login_url = models.CharField(max_length=30)
 
     def __str__(self):
-        return ("openid:%s, login_url:%s" % (self.openid, self.login_url))
+        return ("openid:%s" % self.openid)
 
 # DB operation tool functions
 def get_group(name=None, nick_name=None):

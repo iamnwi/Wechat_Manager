@@ -102,7 +102,7 @@
     function login() {
       // get uuid from server and generate QR code on webpage
       openid = getParameterByName('openid')
-      var uuid_url = "http://"+window.location.host+"/Wechat_Assisant/getuuid?openid=" + openid;
+      var uuid_url = "http://"+window.location.host+"/wm/getuuid?openid=" + openid;
       fetch(uuid_url, {method: 'GET'})
       .then(function(response) {
         console.log(response.headers)
@@ -118,7 +118,7 @@
                                     text: text});
           show_msg("请使用手机微信扫码登录");
           // toggle login on server
-          login_url = "http://"+window.location.host+"/Wechat_Assisant/login?openid="+openid+"&uuid="+data.uuid;
+          login_url = "http://"+window.location.host+"/wm/login?openid="+openid+"&uuid="+data.uuid;
           fetch(login_url, {method: 'GET'}).
           then(function(response) {
             console.log(response.json())
@@ -135,7 +135,7 @@
     // checking login status and reflecting it on webpage
     function check_login(uuid) {
       openid = getParameterByName('openid')
-      var url = "http://"+window.location.host+"/Wechat_Assisant/loginstatus?openid="+openid+"&uuid="+uuid;
+      var url = "http://"+window.location.host+"/wm/loginstatus?openid="+openid+"&uuid="+uuid;
       fetch(url, {method: 'GET',})
       .then(function(response) {
         console.log(response.headers)
