@@ -165,13 +165,25 @@ def note_handler(msg, itchat_ins):
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
 		showntime = time.ctime(int(revoked_msg.msg_time))
-		from_nick_name = itchat_ins.search_friends(userName=msg['FromUserName'])['NickName']
+		if revoked_msg.is_group:
+			from_nick_name = revoked_msg.sender_nick_name
+			group_nick_name = get_group_nick_name(revoked_msg.group_name)
+			if group_nick_name == None:
+				group_nick_name = u"一个群"
+			else:
+				group_nick_name = '"' + group_nick_name + '"'
+			msg_send = from_nick_name \
+					   + u" 于[" + showntime + u"], " \
+					   + u"在" + group_nick_name + u"中, " \
+					   + u"撤回了一条 [" + revoked_msg.msg_type + u"] 消息, 内容如下:"
+		else:
+			from_nick_name = itchat_ins.search_friends(userName=msg['FromUserName'])['NickName']
+			msg_send = u"您的好友：" \
+					   + from_nick_name \
+					   + u"  在 [" + showntime \
+					   + u"], 撤回了一条 [" + revoked_msg.msg_type + u"] 消息, 内容如下:"
 
 		print("%s revoked a msg: %s" % (from_nick_name, revoked_msg.msg_type))
-		msg_send = u"您的好友：" \
-				   + from_nick_name \
-				   + u"  在 [" + showntime \
-				   + u"], 撤回了一条 [" + revoked_msg.msg_type + u"] 消息, 内容如下:"
 
 		is_bin_msg = False
 		if revoked_msg.msg_type == "Text":
@@ -267,6 +279,10 @@ def HandleGroupMsg(msg, itchat_ins):
 		group_obj = group_qs.get(name=group_name)
 		group_obj.nick_name = group_nick_name
 		group_obj.save()
+
+	if msg['Type'] == 'Note':
+		note_handler(msg, itchat_ins)
+		return
 
 	# create messages model
 	close_old_connections()

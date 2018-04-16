@@ -146,7 +146,6 @@ class WechatMP(models.Model):
 
 class ShortUrl(models.Model):
     openid = models.CharField(max_length=200)
-    # login_url = models.CharField(max_length=30)
 
     def __str__(self):
         return ("openid:%s" % self.openid)
