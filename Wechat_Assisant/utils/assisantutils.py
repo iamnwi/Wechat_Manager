@@ -33,24 +33,26 @@ def audio2text(audio_path, audio_format="pcm", sample_rate="8000"):
 		result = "[抱歉，语音转文字功能暂时不可用，请听语音档]"
 	return result
 
-def get_group_notify_context(notify_msg):
+def get_group_notify_context(notify_seg):
 	returnList = []
-	to_user_name = notify_msg.to_user_name
-	group_name = notify_msg.group_name
-	msg_time = notify_msg.msg_time
-	start = msg_time - 60
-	end = msg_time + 60
+	begin_notify_msg = notify_seg['begin']
+	last_notify_msg = notify_seg['last']
+	to_user_name = begin_notify_msg.to_user_name
+	group_name = begin_notify_msg.group_name
+	start = begin_notify_msg.msg_time - 60
+	end = last_notify_msg.msg_time + 60
 	close_old_connections()
 	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
 											msg_to=to_user_name, msg_time__range=(start, end))
 	# concatenate messages, converting recording to text
 	if group_msg_qs.count() > 0:
-		group_nick_name = get_group_nick_name(notify_msg.group_name)
+		group_nick_name = get_group_nick_name(begin_notify_msg.group_name)
 		send_text = u'您在群聊 "'+ group_nick_name + u'" 中收到和您有关的消息：\n'
-		has_bin = False
+		has_audio = False
+		has_pic = False
 		for msg in group_msg_qs.iterator():
 			if msg.msg_type == 'Recording':
-				has_bin = True
+				has_audio = True
 				result = ''
 				with tempfile.NamedTemporaryFile() as tmp:
 					audio = io.BytesIO(msg.msg_bin)
@@ -59,13 +61,15 @@ def get_group_notify_context(notify_msg):
 					print("group recording ASR result:" + result)
 				content = result + '[转文字]'
 			elif msg.msg_type == 'Picture':
-				has_bin = True
+				has_pic = True
 				content = '[Picture]'
 			elif msg.msg_type == 'Text':
 				content = msg.msg_text
 			send_text += msg.sender_nick_name + u': ' + content + u'\n'
-		if has_bin:
+		if has_audio:
 			send_text += u"\n(以上包含语音转文字后的结果，如有需要请到群內查看)"
+		if has_pic:
+			send_text += u"\n(上下文中的图片没有显示，如有需要请到群內查看)"
 		returnList.append(send_text)
 	return returnList
 
@@ -79,9 +83,23 @@ def assisant_send_group_notify(user_name, itchat_ins):
 		return
 	else:
 		msg_list = []
+		notify_msg_seg_list = []
+		pre_msg_time = notify_msg_qs[0].msg_time
+		# find consecutive notifiction mgs
+		begin = notify_msg_qs[0]
+		last = notify_msg_qs[0]
 		for notify_msg in notify_msg_qs.iterator():
-			msg_list += get_group_notify_context(notify_msg)
+			if notify_msg.msg_time - pre_msg_time > 60:
+				notify_msg_seg_list.append(dict({'begin': begin, 'last':last}))
+				begin = notify_msg
+			last = notify_msg
+			pre_msg_time = notify_msg.msg_time
+		notify_msg_seg_list.append(dict({'begin': begin, 'last':last}))
+		# generate notification context
+		for notify_seg in notify_msg_seg_list:
+			msg_list += get_group_notify_context(notify_seg)
 			notify_msg.delete()
+		# send all context to file helper
 		for text in msg_list:
 			itchat_ins.send(text, toUserName='filehelper')
 	return
@@ -103,7 +121,6 @@ def assisant_control_menue(msg, itchat_ins):
 def get_display_name_group(msg, user_name):
 	member_content = re.search(r"<ContactList: \[<ChatroomMember: \{(.*)\}>]>", str(msg))
 	if member_content != None:
-		print(member_content.group(1))
 		users = re.findall(r"'UserName': '([^']*)", member_content.group(1))
 		displays = re.findall(r"'DisplayName': '([^']*)", member_content.group(1))
 		if users != None and displays != None:
@@ -233,7 +250,7 @@ def msg_handler(msg, itchat_ins):
 # 		2. How can we identical different groups? now a group will create a new model after users login again
 # @itchat.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
 def HandleGroupMsg(msg, itchat_ins):
-        # drop the one send from the cilent and receive by the group(which to user is the group itself)
+    # drop the one send from the cilent and receive by the group(which to user is the group itself)
 	if '@@' in msg['ToUserName']:
 		return
 	print('%s received a group msg' % get_nick_name(msg['ToUserName']))
@@ -258,9 +275,10 @@ def HandleGroupMsg(msg, itchat_ins):
 
 	# check whether it is a notify message
 	if check_group_notify(msg, group_name):
+		msg_id = msg['MsgId']
 		to_user_name = msg['ToUserName']
 		msg_time = msg['CreateTime']
 		close_old_connections()
-		notify_msg = NotifyMessage(to_user_name=to_user_name, group_name=group_name, msg_time=msg_time)
+		notify_msg = NotifyMessage(msg_id=msg_id, to_user_name=to_user_name, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
 		print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))

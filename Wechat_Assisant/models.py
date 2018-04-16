@@ -126,6 +126,7 @@ class Group(models.Model):
         return ("id:%s, name:%s" % (self.name, self.nick_name))
 
 class NotifyMessage(models.Model):
+    msg_id = models.CharField(max_length=200, blank=False, default="0")
     to_user_name = models.CharField(max_length=200, blank=False)
     group_name = models.CharField(max_length=200, blank=False)
     msg_time = models.IntegerField(blank=False)

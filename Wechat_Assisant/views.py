@@ -32,7 +32,7 @@ def push(openid):
             print("Unknown Exception Occured During Getting Push Login uuid!")
             traceback.print_exc()
             return False
-        t = threading.Thread(target=Assisant.run_returned_client, args=(uuid, openid,))
+        t = threading.Thread(target=Assisant.run_returned_client, args=(openid, uuid,))
         t.daemon = True
         print("fork a worker thread for client(openid:%s, uuid:%s)" % (openid, uuid))
         t.start()
