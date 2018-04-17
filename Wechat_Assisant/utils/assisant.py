@@ -35,10 +35,10 @@ class Assisant():
     def del_client_records(self):
         uin = (self.itchat_ins.search_friends())['Uin']
         # delete message
-        close_old_connections()
-        msg_records = Message.objects.filter(msg_uin=uin)
-        for msg in msg_records.iterator():
-            msg.delete()
+        # close_old_connections()
+        # msg_records = Message.objects.filter(msg_uin=uin)
+        # for msg in msg_records.iterator():
+        #     msg.delete()
         # delete notification message
         close_old_connections()
         notify_msg_records = NotifyMessage.objects.filter(uin=uin)

@@ -241,7 +241,7 @@ def HandleGroupMsg(msg, assistant):
 	if '@@' in msg['ToUserName']:
 		return
 	# print('%s received a group msg' % get_nick_name(msg['ToUserName']))
-	print(msg)
+	# print(msg)
 
 	# initial a group or update nick name of a gorup
 	group_name = msg['FromUserName']
