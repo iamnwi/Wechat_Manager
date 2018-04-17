@@ -2,6 +2,7 @@
 from __future__ import unicode_literals
 
 from django.db import models
+import re
 
 # Create your models here.
 class WechatClient(models.Model):
@@ -37,6 +38,8 @@ class Message(models.Model):
     sender_user_name = models.CharField(max_length=200, blank=True)
     sender_nick_name = models.CharField(max_length=200, blank=True)
     revoked = models.BooleanField(default=False)
+    is_notice = models.BooleanField(default=False)
+    is_at = models.BooleanField(default=False)
 
     @classmethod
     def create(Message, msg, is_group=False):
@@ -88,10 +91,35 @@ class Message(models.Model):
         group_name = ''
         s_user_name = ''
         s_nick_name = ''
+        is_at = False
+        is_notice = False
         if is_group:
             group_name = msg['FromUserName']
             s_user_name = msg['ActualUserName']
             s_nick_name = msg['ActualNickName']
+            # check wheather it is a notification group msg
+            # 1. check @NickName
+            # 2. check @DisplayName(a name defined for a group)
+            if msg['Type']=='Text':
+                msg_content = msg['Text']
+                # notification msg included '@someone'
+                if '@' in msg_content:
+                    user_name = msg['ToUserName']
+                    nick_name = get_nick_name(user_name)
+                    if u'@'+nick_name in msg_content:
+                        is_at = True
+                    display_name = get_display_name_group(msg, user_name)
+                    print("your display name is %s" % display_name)
+                    if display_name != None and '@' + display_name in msg_content:
+                        is_at = True
+                # group notice
+                if not is_at:
+                    chat_room_owner_re = re.search(r"'ChatRoomOwner': '([^']*)'}", str(msg))
+                    if chat_room_owner_re:
+                        chat_room_owner = chat_room_owner_re.group(1)
+                        print('owner=%s' % chat_room_owner)
+                        if msg['ActualUserName'] == chat_room_owner and len(msg_content) > 30:
+                            is_notice = True
 
         if not is_bin:
             print('text msg')
@@ -99,7 +127,8 @@ class Message(models.Model):
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
                             msg_text=msgText, msg_json=msg, msg_uin=msgUin, \
                             msg_is_group=is_group, group_name=group_name, \
-                            sender_user_name=s_user_name, sender_nick_name=s_nick_name)
+                            sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
+                            is_notice=is_notice, is_at=is_at)
         else:
             print('bin msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
@@ -107,7 +136,8 @@ class Message(models.Model):
                             msg_bin=msgBin, msg_json=msg, msg_uin=msgUin, \
                             msg_text=msgText, \
                             msg_is_group=is_group, group_name=group_name, \
-                            sender_user_name=s_user_name, sender_nick_name=s_nick_name)
+                            sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
+                            is_notice=is_notice, is_at=is_at)
 
     def __str__(self):
         if self.msg_is_group:
@@ -120,10 +150,11 @@ class Message(models.Model):
 
 class Group(models.Model):
     name = models.CharField(max_length=200)
+    uin = models.CharField(max_length=200, blank=False, default='0')
     nick_name = models.CharField(max_length=200)
 
     def __str__(self):
-        return ("id:%s, name:%s" % (self.name, self.nick_name))
+        return ("uin:%s, id:%s, name:%s" % (self.uin, self.name, self.nick_name))
 
 class NotifyMessage(models.Model):
     uin = models.CharField(max_length=200, blank=False, default='0')
@@ -196,6 +227,18 @@ def get_nick_name(user_name):
     wc = get_wc(user_name=user_name)
     if wc:
         return wc.nick_name
+
+# find display name to the specific user in the group where the message comes from.
+def get_display_name_group(msg, user_name):
+    member_content = re.search(r"<ContactList: \[<ChatroomMember: \{(.*)\}>]>", str(msg))
+    if member_content != None:
+        users = re.findall(r"'UserName': '([^']*)", member_content.group(1))
+        displays = re.findall(r"'DisplayName': '([^']*)", member_content.group(1))
+        if users != None and displays != None:
+            user2nick = dict(zip(users, displays))
+            for (user, nick) in user2nick.items():
+                if user == user_name and nick != '':
+                    return nick
 
 # solve issue: OperationalError: (2006, 'MySQL server has gone away')
 from django.db import connections

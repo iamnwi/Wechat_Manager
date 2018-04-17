@@ -48,7 +48,7 @@ def get_group_notify_context(notify_seg):
 	showntime = time.ctime(int(begin_notify_msg.msg_time))
 	if group_msg_qs.count() > 0:
 		group_nick_name = get_group_nick_name(begin_notify_msg.group_name)
-		send_text = u'[' + showntime + '] 你在群聊 "'+ group_nick_name + u'" 中收到和你有关的消息：\n'
+		send_text = u'[' + showntime + '] 你在群聊 "'+ group_nick_name + u'" 中收到提及你的消息：\n'
 		has_audio = False
 		has_pic = False
 		for msg in group_msg_qs.iterator():
@@ -65,7 +65,7 @@ def get_group_notify_context(notify_seg):
 				has_pic = True
 				content = '[Picture]'
 			elif msg.msg_type == 'Text':
-				content = msg.msg_text
+				content = '[可能是群公告]' + msg.msg_text if msg.is_notice else msg.msg_text
 			send_text += msg.sender_nick_name + u': ' + content + u'\n'
 		if has_audio:
 			send_text += u"\n(以上包含语音转文字后的结果，如有需要请到群內查看)"
@@ -125,43 +125,6 @@ def assisant_control_menue(msg, assistant):
 			print('It is an unsupported control message.')
 	else:
 		print('It is an unsupported type of control message.')
-
-# find display name to the specific user in the group where the message comes from.
-def get_display_name_group(msg, user_name):
-	member_content = re.search(r"<ContactList: \[<ChatroomMember: \{(.*)\}>]>", str(msg))
-	if member_content != None:
-		users = re.findall(r"'UserName': '([^']*)", member_content.group(1))
-		displays = re.findall(r"'DisplayName': '([^']*)", member_content.group(1))
-		if users != None and displays != None:
-			user2nick = dict(zip(users, displays))
-			for (user, nick) in user2nick.items():
-				if user == user_name and nick != '':
-					return nick
-
-# check whether it is a notify message
-# 1. check @all
-# 2. check @NickName
-# 3. check @DisplayName(a name defined for a group)
-def check_group_notify(msg, group_name):
-	if not msg['Type']=='Text':
-		return False
-	print('checkGroupNotify')
-	msg_content = msg['Content']
-	if '@' in msg_content:
-		if u'@所有人' in msg_content or\
-			u'@all' in msg_content:
-			return True
-		else:
-			user_name = msg['ToUserName']
-			nick_name = get_nick_name(user_name)
-			if u'@'+nick_name in msg_content:
-				return True
-			display_name = get_display_name_group(msg, user_name)
-			print("your display name is %s" % display_name)
-			if display_name != None and '@' + display_name in msg_content:
-				return True
-	else:
-		return False
 
 #收到note类消息，判断是不是撤回并进行相应操作
 def note_handler(msg, itchat_ins):
@@ -254,7 +217,7 @@ def msg_handler(msg, assistant):
 	if WechatClient.objects.filter(user_name=msg['ToUserName']).count() == 0:
 		return
 
-	print('%s received a msg' % get_nick_name(msg['ToUserName']))
+	# print('%s received a msg' % get_nick_name(msg['ToUserName']))
 
 	if msg['Type'] == 'Note':
 		note_handler(msg, itchat_ins)
@@ -273,10 +236,11 @@ def msg_handler(msg, assistant):
 # @itchat.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
 def HandleGroupMsg(msg, assistant):
 	itchat_ins = assistant.itchat_ins
+	uin = (itchat_ins.search_friends())['Uin']
     # drop the one send from the cilent and receive by the group(which to user is the group itself)
 	if '@@' in msg['ToUserName']:
 		return
-	print('%s received a group msg' % get_nick_name(msg['ToUserName']))
+	# print('%s received a group msg' % get_nick_name(msg['ToUserName']))
 	print(msg)
 
 	# initial a group or update nick name of a gorup
@@ -285,7 +249,7 @@ def HandleGroupMsg(msg, assistant):
 	close_old_connections()
 	group_qs = Group.objects.filter(name=msg['FromUserName'])
 	if group_qs.count() == 0:
-		group_obj = Group(name=group_name, nick_name=group_nick_name)
+		group_obj = Group(uin=uin, name=group_name, nick_name=group_nick_name)
 		group_obj.save()
 	elif group_qs.count() == 1 and group_nick_name != group_qs.get(name=group_name).nick_name:
 		group_obj = group_qs.get(name=group_name)
@@ -302,11 +266,12 @@ def HandleGroupMsg(msg, assistant):
 	msg_obj.save()
 
 	# check whether it is a notify message
-	if check_group_notify(msg, group_name):
+	if msg_obj.is_at or msg_obj.is_notice:
 		msg_id = msg['MsgId']
+		to_user_name = msg['ToUserName']
 		msg_time = msg['CreateTime']
 		uin = (itchat_ins.search_friends())['Uin']
 		close_old_connections()
 		notify_msg = NotifyMessage(uin=uin, msg_id=msg_id, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
-		print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
+		# print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
