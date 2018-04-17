@@ -53,7 +53,7 @@ class Assisant():
         @assistant.itchat_ins.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS, NOTE])
         def msg_handler_wapper(msg):
             msg_handler(msg, assistant.itchat_ins)
-        @assistant.itchat_ins.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
+        @assistant.itchat_ins.msg_register([TEXT, RECORDING, PICTURE, NOTE], isGroupChat=True)
         def HandleGroupMsg_wapper(msg):
             HandleGroupMsg(msg, assistant.itchat_ins)
 

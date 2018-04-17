@@ -165,7 +165,7 @@ def note_handler(msg, itchat_ins):
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
 		showntime = time.ctime(int(revoked_msg.msg_time))
-		if revoked_msg.is_group:
+		if revoked_msg.msg_is_group:
 			from_nick_name = revoked_msg.sender_nick_name
 			group_nick_name = get_group_nick_name(revoked_msg.group_name)
 			if group_nick_name == None:
