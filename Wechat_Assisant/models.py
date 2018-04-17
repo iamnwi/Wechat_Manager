@@ -126,13 +126,13 @@ class Group(models.Model):
         return ("id:%s, name:%s" % (self.name, self.nick_name))
 
 class NotifyMessage(models.Model):
+    uin = models.CharField(max_length=200, blank=False, default='0')
     msg_id = models.CharField(max_length=200, blank=False, default="0")
-    to_user_name = models.CharField(max_length=200, blank=False)
     group_name = models.CharField(max_length=200, blank=False)
     msg_time = models.IntegerField(blank=False)
 
     def __str__(self):
-        return ("to:%s, group:%s" % (self.to_user_name, self.group_name))
+        return ("to:%s, group:%s" % (self.uin, self.group_name))
 
 class WechatMP(models.Model):
     app_id = models.CharField(max_length=18, blank=False)

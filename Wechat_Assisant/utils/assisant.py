@@ -32,6 +32,20 @@ class Assisant():
         # storage the itchat instance in a dict
         Assisant.instance_dict[openid] = self
 
+    def del_client_records(self):
+        uin = (self.itchat_ins.search_friends())['Uin']
+        # delete message
+        close_old_connections()
+        msg_records = Message.objects.filter(msg_uin=uin)
+        for msg in msg_records.iterator():
+            msg.delete()
+        # delete notification message
+        close_old_connections()
+        notify_msg_records = NotifyMessage.objects.filter(uin=uin)
+        for msg in notify_msg_records.iterator():
+            msg.delete()
+        self.itchat_ins.send(settings.DEL_REC_DONE_MSG, toUserName='filehelper')
+
     @staticmethod
     def get_QRuuid(openid):
         assistant = Assisant.get_assistant(openid)
@@ -52,10 +66,10 @@ class Assisant():
         # add handlers to ithcat instance
         @assistant.itchat_ins.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS, NOTE])
         def msg_handler_wapper(msg):
-            msg_handler(msg, assistant.itchat_ins)
+            msg_handler(msg, assistant)
         @assistant.itchat_ins.msg_register([TEXT, RECORDING, PICTURE, NOTE], isGroupChat=True)
         def HandleGroupMsg_wapper(msg):
-            HandleGroupMsg(msg, assistant.itchat_ins)
+            HandleGroupMsg(msg, assistant)
 
         print("login info: uin=%s, NickName=%s" % (uin, nick_name));
         print("host=%s" % host)

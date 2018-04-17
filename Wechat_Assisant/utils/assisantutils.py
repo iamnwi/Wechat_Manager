@@ -37,17 +37,18 @@ def get_group_notify_context(notify_seg):
 	returnList = []
 	begin_notify_msg = notify_seg['begin']
 	last_notify_msg = notify_seg['last']
-	to_user_name = begin_notify_msg.to_user_name
+	to_uin = begin_notify_msg.uin
 	group_name = begin_notify_msg.group_name
 	start = begin_notify_msg.msg_time - 60
 	end = last_notify_msg.msg_time + 60
 	close_old_connections()
 	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
-											msg_to=to_user_name, msg_time__range=(start, end))
+											msg_uin=to_uin, msg_time__range=(start, end))
 	# concatenate messages, converting recording to text
+	showntime = time.ctime(int(begin_notify_msg.msg_time))
 	if group_msg_qs.count() > 0:
 		group_nick_name = get_group_nick_name(begin_notify_msg.group_name)
-		send_text = u'您在群聊 "'+ group_nick_name + u'" 中收到和您有关的消息：\n'
+		send_text = u'[' + showntime + '] 你在群聊 "'+ group_nick_name + u'" 中收到和你有关的消息：\n'
 		has_audio = False
 		has_pic = False
 		for msg in group_msg_qs.iterator():
@@ -74,10 +75,11 @@ def get_group_notify_context(notify_seg):
 	return returnList
 
 # send all groups' notify messages to filehelper
-def assisant_send_group_notify(user_name, itchat_ins):
+def assisant_send_group_notify(itchat_ins):
 	print("Send group notify messages to filehelper")
+	uin = (itchat_ins.search_friends())['Uin']
 	close_old_connections()
-	notify_msg_qs = NotifyMessage.objects.filter(to_user_name=user_name)
+	notify_msg_qs = NotifyMessage.objects.filter(uin=uin)
 	if notify_msg_qs.count()==0:
 		itchat_ins.send(u'没有提及你的群消息', toUserName='filehelper')
 		return
@@ -98,6 +100,9 @@ def assisant_send_group_notify(user_name, itchat_ins):
 		# generate notification context
 		for notify_seg in notify_msg_seg_list:
 			msg_list += get_group_notify_context(notify_seg)
+		# delete notify msg
+		close_old_connections()
+		for notify_msg in notify_msg_qs.iterator():
 			notify_msg.delete()
 		# send all context to file helper
 		for text in msg_list:
@@ -105,14 +110,18 @@ def assisant_send_group_notify(user_name, itchat_ins):
 	return
 
 # trigger different assisant functions according to the msg content
-def assisant_control_menue(msg, itchat_ins):
+def assisant_control_menue(msg, assistant):
 	msg_from = msg['FromUserName']
 	print('received a robot control message')
 	if msg['Type'] == 'Text':
 		msgContent = msg['Text']
 		if msgContent == '@':
-			assisant_send_group_notify(msg_from, itchat_ins)
+			assisant_send_group_notify(assistant.itchat_ins)
+		elif re.match('del', msgContent, re.IGNORECASE):
+			assistant.del_client_records()
+			print('client(openid=%s) require to delete his/her records, finished' % assistant.openid)
 		else:
+			assistant.itchat_ins.send(settings.UNSUPPORTED_CONTROL_MSG, toUserName='filehelper')
 			print('It is an unsupported control message.')
 	else:
 		print('It is an unsupported type of control message.')
@@ -228,13 +237,14 @@ def note_handler(msg, itchat_ins):
 #将接收到的消息存放在字典中，当接收到新消息时对字典中超时的消息进行清理
 #没有注册note（通知类）消息，通知类消息一般为：红包 转账 消息撤回提醒等，不具有撤回功能
 # @itchat.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS, NOTE])
-def msg_handler(msg, itchat_ins):
+def msg_handler(msg, assistant):
+	itchat_ins = assistant.itchat_ins
 	# ignore the msg which a user send to himself/herself
 	if msg['FromUserName'] == msg['ToUserName']:
 		return;
 	# it maybe is a robot control message
 	if msg['ToUserName'] == 'filehelper':
-		assisant_control_menue(msg, itchat_ins)
+		assisant_control_menue(msg, assistant)
 		return
 	# ignore msg sent by a user here in the client pool and receive it again
 	# detail:	wechat will send msg to both sender and receiver
@@ -261,11 +271,13 @@ def msg_handler(msg, itchat_ins):
 #			if we have multiple clients in a same group, then a same msg will repeated in our DB
 # 		2. How can we identical different groups? now a group will create a new model after users login again
 # @itchat.msg_register([TEXT, RECORDING, PICTURE], isGroupChat=True)
-def HandleGroupMsg(msg, itchat_ins):
+def HandleGroupMsg(msg, assistant):
+	itchat_ins = assistant.itchat_ins
     # drop the one send from the cilent and receive by the group(which to user is the group itself)
 	if '@@' in msg['ToUserName']:
 		return
 	print('%s received a group msg' % get_nick_name(msg['ToUserName']))
+	print(msg)
 
 	# initial a group or update nick name of a gorup
 	group_name = msg['FromUserName']
@@ -292,9 +304,9 @@ def HandleGroupMsg(msg, itchat_ins):
 	# check whether it is a notify message
 	if check_group_notify(msg, group_name):
 		msg_id = msg['MsgId']
-		to_user_name = msg['ToUserName']
 		msg_time = msg['CreateTime']
+		uin = (itchat_ins.search_friends())['Uin']
 		close_old_connections()
-		notify_msg = NotifyMessage(msg_id=msg_id, to_user_name=to_user_name, group_name=group_name, msg_time=msg_time)
+		notify_msg = NotifyMessage(uin=uin, msg_id=msg_id, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
 		print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
