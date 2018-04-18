@@ -18,6 +18,10 @@ class WechatClient(models.Model):
     host = models.CharField(max_length=50, default='None')
     webwxuvid = models.CharField(max_length=100, default='None')
     webwx_auth_ticket = models.CharField(max_length=190, default='None')
+    # data
+    group_list = models.TextField(default='[]')
+    friend_list = models.TextField(default='[]')
+    mp_list = models.TextField(default='[]')
 
     def __str__(self):
         return ("uin:%s, nick_name:%s" % (self.uin, self.nick_name))
