@@ -38,6 +38,7 @@ class Message(models.Model):
     msg_json = models.TextField(blank=False)
     msg_uin = models.CharField(max_length=200, blank=False, default='')
     msg_is_group = models.BooleanField(default=False)
+    msg_is_mp = models.BooleanField(default=False)
     group_name = models.CharField(max_length=200, blank=True)
     sender_user_name = models.CharField(max_length=200, blank=True)
     sender_nick_name = models.CharField(max_length=200, blank=True)
@@ -46,7 +47,7 @@ class Message(models.Model):
     is_at = models.BooleanField(default=False)
 
     @classmethod
-    def create(Message, msg, is_group=False):
+    def create(Message, msg, is_group=False, is_mp=False):
         msgId = msg['MsgId'] # id
         msgTime = int(msg['CreateTime']) # time
         msgFrom = msg['FromUserName']
@@ -113,7 +114,7 @@ class Message(models.Model):
                     if u'@'+nick_name in msg_content:
                         is_at = True
                     display_name = get_display_name_group(msg, user_name)
-                    print("your display name is %s" % display_name)
+                    # print("your display name is %s" % display_name)
                     if display_name != None and '@' + display_name in msg_content:
                         is_at = True
                 # group notice
@@ -121,27 +122,27 @@ class Message(models.Model):
                     chat_room_owner_re = re.search(r"'ChatRoomOwner': '([^']*)'}", str(msg))
                     if chat_room_owner_re:
                         chat_room_owner = chat_room_owner_re.group(1)
-                        print('owner=%s' % chat_room_owner)
+                        # print('owner=%s' % chat_room_owner)
                         if msg['ActualUserName'] == chat_room_owner and len(msg_content) > 30:
                             is_notice = True
 
         if not is_bin:
-            print('text msg')
+            # print('text msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
                             msg_text=msgText, msg_json=msg, msg_uin=msgUin, \
                             msg_is_group=is_group, group_name=group_name, \
                             sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
-                            is_notice=is_notice, is_at=is_at)
+                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp)
         else:
-            print('bin msg')
+            # print('bin msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
                             msg_from=msgFrom, msg_to=msgTo, msg_url=msgUrl, \
                             msg_bin=msgBin, msg_json=msg, msg_uin=msgUin, \
                             msg_text=msgText, \
                             msg_is_group=is_group, group_name=group_name, \
                             sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
-                            is_notice=is_notice, is_at=is_at)
+                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp)
 
     def __str__(self):
         if self.msg_is_group:
@@ -193,7 +194,7 @@ def get_group(name=None, nick_name=None):
             group = Group.objects.get(name=name)
         elif nick_name:
             group = Group.objects.get(nick_name=nick_name)
-        print("[get Group] name = %s, nick_name = %s" % (name, nick_name))
+        # print("[get Group] name = %s, nick_name = %s" % (name, nick_name))
         return group
 
 def get_group_nick_name(group_name):
@@ -213,7 +214,7 @@ def get_wc(uin=None, user_name=None, openid=None):
                 wc = WechatClient.objects.get(user_name=user_name)
             elif openid:
                 wc = WechatClient.objects.get(openid=openid)
-            print("[get wechat client] openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
+            # print("[get wechat client] openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
         except WechatClient.DoesNotExist:
             print("wc doesn't exist!")
             wc = None

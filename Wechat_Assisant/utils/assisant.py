@@ -29,14 +29,20 @@ class Assisant():
     def __init__(self, openid):
         self.openid = openid
         self.itchat_ins = itchat.new_instance()
+        print("produced a new itchat instance for client(%s)" % openid)
         # storage the itchat instance in a dict
         Assisant.instance_dict[openid] = self
 
     def get_chatroom(self):
-        self.itchat_ins.get_chatrooms(update=True)
-        chatrooms = self.itchat_ins.search_chatrooms(settings.CHATROOM_NAME)
+        itchat_ins = self.itchat_ins
+        itchat_ins.get_chatrooms(update=True)
+        chatrooms = itchat_ins.search_chatrooms(settings.CHATROOM_NAME)
         if chatrooms:
             return chatrooms[0]
+        else:
+            r = itchat_ins.create_chatroom(itchat_ins.get_friends()[1:4], topic=settings.CHATROOM_NAME)
+            if r['BaseResponse']['ErrMsg'] == u'请求成功':
+                return {'UserName': r['ChatRoomName']}
 
     def get_friend_status(self, friend):
         ownAccount = self.itchat_ins.get_friends(update=True)[0]
@@ -99,9 +105,9 @@ class Assisant():
         uin = (assistant.itchat_ins.search_friends())['Uin']
         user_name = (assistant.itchat_ins.search_friends())['UserName']
         nick_name = (assistant.itchat_ins.search_friends())['NickName']
-        friend_list = assistant.itchat_ins.get_friends(update=True)
-        group_list = assistant.itchat_ins.get_chatrooms(update=True)
-        mp_list = assistant.itchat_ins.get_mps(update=True)
+        friend_list = json.dumps(assistant.itchat_ins.get_friends(update=True))
+        group_list = json.dumps(assistant.itchat_ins.get_chatrooms(update=True))
+        mp_list = json.dumps(assistant.itchat_ins.get_mps(update=True))
 
         # add handlers to ithcat instance
         @assistant.itchat_ins.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS, NOTE])
@@ -110,6 +116,9 @@ class Assisant():
         @assistant.itchat_ins.msg_register([TEXT, RECORDING, PICTURE, NOTE], isGroupChat=True)
         def HandleGroupMsg_wapper(msg):
             HandleGroupMsg(msg, assistant)
+        @assistant.itchat_ins.msg_register([TEXT, PICTURE, MAP, CARD, SHARING, RECORDING, ATTACHMENT, VIDEO, FRIENDS, NOTE], isMpChat=True)
+        def mp_msg_handler_wapper(msg):
+            mp_msg_handler(msg, assistant)
 
         print("login info: uin=%s, NickName=%s" % (uin, nick_name));
         print("host=%s" % host)

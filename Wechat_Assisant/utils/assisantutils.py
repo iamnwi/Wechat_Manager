@@ -281,3 +281,11 @@ def HandleGroupMsg(msg, assistant):
 		notify_msg = NotifyMessage(uin=uin, msg_id=msg_id, group_name=group_name, msg_time=msg_time)
 		notify_msg.save()
 		# print('%s @%s in a group' % (msg['ActualNickName'], get_display_name_group(msg, to_user_name)))
+
+# massive platfrom msgs handler
+def mp_msg_handler(msg, assistant):
+	print(msg)
+	# create messages model
+	close_old_connections()
+	msg_obj = Message.create(msg, is_mp=True);
+	msg_obj.save()
