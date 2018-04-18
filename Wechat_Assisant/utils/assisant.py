@@ -32,6 +32,32 @@ class Assisant():
         # storage the itchat instance in a dict
         Assisant.instance_dict[openid] = self
 
+    def get_chatroom(self):
+        self.itchat_ins.get_chatrooms(update=True)
+        chatrooms = self.itchat_ins.search_chatrooms(settings.CHATROOM_NAME)
+        if chatrooms:
+            return chatrooms[0]
+
+    def get_friend_status(self, friend):
+        ownAccount = self.itchat_ins.get_friends(update=True)[0]
+        if friend['UserName'] == ownAccount['UserName']:
+            return u'检测到本人账号。'
+        elif self.itchat_ins.search_friends(userName=friend['UserName']) is None:
+            return u'该用户不在你的好友列表中。'
+        else:
+            chatroom = self.get_chatroom()
+            if chatroom is None:
+                return settings.FAIL_CHATROOM_MSG
+            r = self.itchat_ins.add_member_into_chatroom(chatroom['UserName'], [friend])
+            if r['BaseResponse']['ErrMsg'] == u'请求成功':
+                status = r['MemberList'][0]['MemberStatus']
+                self.itchat_ins.delete_member_from_chatroom(chatroom['UserName'], [friend])
+                return { 3: u'该好友已经将你加入黑名单。',
+                    4: u'该好友已经将你删除。', }.get(status,
+                    u'该好友仍旧与你是好友关系。')
+            else:
+                return u'无法获取好友状态，预计已经达到接口调用限制。'
+
     def del_client_records(self):
         uin = (self.itchat_ins.search_friends())['Uin']
         # delete message
@@ -45,6 +71,17 @@ class Assisant():
         for msg in notify_msg_records.iterator():
             msg.delete()
         self.itchat_ins.send(settings.DEL_REC_DONE_MSG, toUserName='filehelper')
+
+    def check_friend_status(msg):
+        chatroomUserName = '@1234567'
+        friend = itchat.get_friends()[1]
+        r = itchat.add_member_into_chatroom(chatroomUserName, [friend])
+        if r['BaseResponse']['ErrMsg'] == '':
+            status = r['MemberList'][0]['MemberStatus']
+            itchat.delete_member_from_chatroom(chatroom['UserName'], [friend])
+            return { 3: u'该好友已经将你加入黑名单。',
+                4: u'该好友已经将你删除。', }.get(status,
+                u'该好友仍旧与你是好友关系。')
 
     @staticmethod
     def get_QRuuid(openid):

@@ -112,7 +112,7 @@ def assisant_send_group_notify(itchat_ins):
 # trigger different assisant functions according to the msg content
 def assisant_control_menue(msg, assistant):
 	msg_from = msg['FromUserName']
-	print('received a robot control message')
+	print('client(oid=%s) sent a robot control message(type=%s)' % (assistant.openid, msg['Type']))
 	if msg['Type'] == 'Text':
 		msgContent = msg['Text']
 		if msgContent == '@':
@@ -120,9 +120,15 @@ def assisant_control_menue(msg, assistant):
 		elif re.match('del', msgContent, re.IGNORECASE):
 			assistant.del_client_records()
 			print('client(openid=%s) require to delete his/her records, finished' % assistant.openid)
+		elif re.match('friend', msgContent, re.IGNORECASE):
+			assistant.itchat_ins.send(settings.CHECK_FRIEND_MSG, 'filehelper')
 		else:
 			assistant.itchat_ins.send(settings.UNSUPPORTED_CONTROL_MSG, toUserName='filehelper')
 			print('It is an unsupported control message.')
+	elif msg['Type'] == 'Card':
+		assistant.itchat_ins.send(settings.CHECK_FRIEND_START_MSG, toUserName='filehelper')
+		friend_status = assistant.get_friend_status(msg['RecommendInfo'])
+		assistant.itchat_ins.send(friend_status, 'filehelper')
 	else:
 		print('It is an unsupported type of control message.')
 
