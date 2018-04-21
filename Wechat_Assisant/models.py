@@ -45,9 +45,10 @@ class Message(models.Model):
     revoked = models.BooleanField(default=False)
     is_notice = models.BooleanField(default=False)
     is_at = models.BooleanField(default=False)
+    send = models.BooleanField(default=False)
 
     @classmethod
-    def create(Message, msg, is_group=False, is_mp=False):
+    def create(Message, msg, is_group=False, is_mp=False, send=False):
         msgId = msg['MsgId'] # id
         msgTime = int(msg['CreateTime']) # time
         msgFrom = msg['FromUserName']
@@ -84,14 +85,13 @@ class Message(models.Model):
         elif msg['Type'] == 'Sharing':
             msgText = msg['Text']
             msgUrl = msg['Url']
-            print("url: %s" % msgUrl)
 
         elif msg['Type'] == 'Friends':
             msgText = msg['Text']
 
         # get receiver uin by receiver's user name
         to_wc = get_wc(user_name=msgTo)
-        msgUin = to_wc.uin
+        msgUin = to_wc.uin if to_wc is not None else 'Unknown'
 
         group_name = ''
         s_user_name = ''
@@ -99,32 +99,33 @@ class Message(models.Model):
         is_at = False
         is_notice = False
         if is_group:
-            group_name = msg['FromUserName']
+            group_name = msg['FromUserName'] if '@@' in msg['FromUserName'] else msg['ToUserName']
             s_user_name = msg['ActualUserName']
             s_nick_name = msg['ActualNickName']
-            # check wheather it is a notification group msg
-            # 1. check @NickName
-            # 2. check @DisplayName(a name defined for a group)
-            if msg['Type']=='Text':
-                msg_content = msg['Text']
-                # notification msg included '@someone'
-                if '@' in msg_content:
-                    user_name = msg['ToUserName']
-                    nick_name = get_nick_name(user_name)
-                    if u'@'+nick_name in msg_content:
-                        is_at = True
-                    display_name = get_display_name_group(msg, user_name)
-                    # print("your display name is %s" % display_name)
-                    if display_name != None and '@' + display_name in msg_content:
-                        is_at = True
-                # group notice
-                if not is_at:
-                    chat_room_owner_re = re.search(r"'ChatRoomOwner': '([^']*)'}", str(msg))
-                    if chat_room_owner_re:
-                        chat_room_owner = chat_room_owner_re.group(1)
-                        # print('owner=%s' % chat_room_owner)
-                        if msg['ActualUserName'] == chat_room_owner and len(msg_content) > 30:
-                            is_notice = True
+            if send is False:
+                # check wheather it is a notification group msg
+                # 1. check @NickName
+                # 2. check @DisplayName(a name defined for a group)
+                if msg['Type']=='Text':
+                    msg_content = msg['Text']
+                    # notification msg included '@someone'
+                    if '@' in msg_content:
+                        user_name = msg['ToUserName']
+                        nick_name = get_nick_name(user_name)
+                        if u'@'+nick_name in msg_content:
+                            is_at = True
+                        display_name = get_display_name_group(msg, user_name)
+                        # print("your display name is %s" % display_name)
+                        if display_name != None and '@' + display_name in msg_content:
+                            is_at = True
+                    # group notice
+                    if not is_at:
+                        chat_room_owner_re = re.search(r"'ChatRoomOwner': '([^']*)'}", str(msg))
+                        if chat_room_owner_re:
+                            chat_room_owner = chat_room_owner_re.group(1)
+                            # print('owner=%s' % chat_room_owner)
+                            if msg['ActualUserName'] == chat_room_owner and len(msg_content) > 30:
+                                is_notice = True
 
         if not is_bin:
             # print('text msg')
@@ -133,7 +134,7 @@ class Message(models.Model):
                             msg_text=msgText, msg_json=msg, msg_uin=msgUin, \
                             msg_is_group=is_group, group_name=group_name, \
                             sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
-                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp)
+                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp, send=send)
         else:
             # print('bin msg')
             return Message(msg_id=msgId, msg_type=msgType, msg_time=msgTime, \
@@ -142,7 +143,7 @@ class Message(models.Model):
                             msg_text=msgText, \
                             msg_is_group=is_group, group_name=group_name, \
                             sender_user_name=s_user_name, sender_nick_name=s_nick_name, \
-                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp)
+                            is_notice=is_notice, is_at=is_at, msg_is_mp=is_mp, send=send)
 
     def __str__(self):
         if self.msg_is_group:
@@ -150,7 +151,7 @@ class Message(models.Model):
             return ("group:%s, sender:%s, type:%s" % (group.nick_name, self.sender_nick_name, self.msg_type))
         else:
             to_wc = get_wc(uin=self.msg_uin)
-            to_nick = to_wc.nick_name
+            to_nick = to_wc.nick_name if to_wc is not None else 'Unknown'
             return ("id:%s, to:%s, type:%s" % (self.msg_id, to_nick, self.msg_type))
 
 class Group(models.Model):
@@ -207,23 +208,20 @@ def get_wc(uin=None, user_name=None, openid=None):
     if not (uin==None and user_name==None and openid==None):
         try:
             if uin:
-                print("uin=%s" % uin)
                 wc = WechatClient.objects.get(uin=uin)
             elif user_name:
-                print("user_name=%s" % user_name)
                 wc = WechatClient.objects.get(user_name=user_name)
             elif openid:
                 wc = WechatClient.objects.get(openid=openid)
-            # print("[get wechat client] openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
         except WechatClient.DoesNotExist:
-            print("wc doesn't exist!")
+            print("[get wechat client] FAIL: DoesNotExist -- openid = %s, uin = %s, username = %s" % (openid, uin, user_name))
             wc = None
         return wc
 
 def get_msg(msg_id=None):
     close_old_connections()
     msg = None
-    msg_qs = Message.objects.filter(msg_id=msg_id)
+    msg_qs = Message.objects.filter(msg_id=msg_id, send=False)
     if msg_qs.count() == 1:
         msg = msg_qs.get(msg_id=msg_id)
     return msg

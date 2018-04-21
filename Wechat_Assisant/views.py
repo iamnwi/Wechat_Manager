@@ -9,6 +9,7 @@ from django.conf import settings
 from Wechat_Assisant.models import *
 from .utils.assisant import Assisant
 from .utils.wechatmputils import *
+from .utils.constant import Constant
 
 import time
 import base64
@@ -51,7 +52,7 @@ def kick():
         ins = assistant.itchat_ins
         uin = (ins.search_friends())['Uin']
         print("send logout-by-admin msg to client(openid=%s, uin=%s) and logout" % (openid, uin))
-        ins.send(settings.LOGOUT_BY_ADMIN_MSG, toUserName='filehelper')
+        ins.send(Constant.LOGOUT_BY_ADMIN_MSG, toUserName='filehelper')
         print("sent and now logout")
         ins.logout()
 

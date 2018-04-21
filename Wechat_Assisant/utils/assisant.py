@@ -13,9 +13,7 @@ from .site_package import itchat
 from .site_package.itchat.content import *
 from .assisantutils import *
 from Wechat_Assisant.models import *
-
-# Django
-from django.conf import settings
+from .constant import Constant
 
 # mp
 from multiprocessing import Process
@@ -36,11 +34,11 @@ class Assisant():
     def get_chatroom(self):
         itchat_ins = self.itchat_ins
         itchat_ins.get_chatrooms(update=True)
-        chatrooms = itchat_ins.search_chatrooms(settings.CHATROOM_NAME)
+        chatrooms = itchat_ins.search_chatrooms(Constant.CHATROOM_NAME)
         if chatrooms:
             return chatrooms[0]
         else:
-            r = itchat_ins.create_chatroom(itchat_ins.get_friends()[1:4], topic=settings.CHATROOM_NAME)
+            r = itchat_ins.create_chatroom(itchat_ins.get_friends()[1:4], topic=Constant.CHATROOM_NAME)
             if r['BaseResponse']['ErrMsg'] == u'请求成功':
                 return {'UserName': r['ChatRoomName']}
 
@@ -53,7 +51,7 @@ class Assisant():
         else:
             chatroom = self.get_chatroom()
             if chatroom is None:
-                return settings.FAIL_CHATROOM_MSG
+                return Constant.FAIL_CHATROOM_MSG
             r = self.itchat_ins.add_member_into_chatroom(chatroom['UserName'], [friend])
             if r['BaseResponse']['ErrMsg'] == u'请求成功':
                 status = r['MemberList'][0]['MemberStatus']
@@ -76,7 +74,7 @@ class Assisant():
         notify_msg_records = NotifyMessage.objects.filter(uin=uin)
         for msg in notify_msg_records.iterator():
             msg.delete()
-        self.itchat_ins.send(settings.DEL_REC_DONE_MSG, toUserName='filehelper')
+        self.itchat_ins.send(Constant.DEL_REC_DONE_MSG, toUserName='filehelper')
 
     def check_friend_status(msg):
         chatroomUserName = '@1234567'
@@ -130,7 +128,7 @@ class Assisant():
 
         # run itchat instance
         print("run client(openid=%s, uuid:%s)..." % (openid, uuid))
-        assistant.itchat_ins.send(settings.LOGIN_WELCOME_MSG, toUserName='filehelper')
+        assistant.itchat_ins.send(Constant.LOGIN_WELCOME_MSG, toUserName='filehelper')
         assistant.itchat_ins.run()
 
     @staticmethod
@@ -181,7 +179,7 @@ class Assisant():
     def turn_offline(openid):
         assistant = Assisant.get_assistant(openid)
         uin = (assistant.itchat_ins.search_friends())['Uin']
-        assistant.itchat_ins.send(settings.LOGOUT_MSG, toUserName='filehelper')
+        assistant.itchat_ins.send(Constant.LOGOUT_MSG, toUserName='filehelper')
         print("client(openid=%s, uin=%s) turned off" % (openid, uin))
         Assisant.instance_dict.pop(openid, None)
         wc = get_wc(uin=uin)

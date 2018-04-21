@@ -13,6 +13,7 @@ from .site_package import itchat
 from .site_package.itchat.content import *
 from Wechat_Assisant.models import *
 from django.conf import settings
+from .constant import Constant
 
 # Get an instance of a logger
 logger = logging.getLogger('web-logger')
@@ -66,6 +67,7 @@ def get_group_notify_context(notify_seg):
 				content = '[Picture]'
 			elif msg.msg_type == 'Text':
 				content = '[可能是群公告]' + msg.msg_text if msg.is_notice else msg.msg_text
+			content = '[撤回消息]' + content if msg.revoked else content
 			send_text += msg.sender_nick_name + u': ' + content + u'\n'
 		if has_audio:
 			send_text += u"\n(以上包含语音转文字后的结果，如有需要请到群內查看)"
@@ -121,12 +123,12 @@ def assisant_control_menue(msg, assistant):
 			assistant.del_client_records()
 			print('client(openid=%s) require to delete his/her records, finished' % assistant.openid)
 		elif re.match('friend', msgContent, re.IGNORECASE):
-			assistant.itchat_ins.send(settings.CHECK_FRIEND_MSG, 'filehelper')
+			assistant.itchat_ins.send(Constant.CHECK_FRIEND_MSG, 'filehelper')
 		else:
-			assistant.itchat_ins.send(settings.UNSUPPORTED_CONTROL_MSG, toUserName='filehelper')
+			assistant.itchat_ins.send(Constant.UNSUPPORTED_CONTROL_MSG, toUserName='filehelper')
 			print('It is an unsupported control message.')
 	elif msg['Type'] == 'Card':
-		assistant.itchat_ins.send(settings.CHECK_FRIEND_START_MSG, toUserName='filehelper')
+		assistant.itchat_ins.send(Constant.CHECK_FRIEND_START_MSG, toUserName='filehelper')
 		friend_status = assistant.get_friend_status(msg['RecommendInfo'])
 		assistant.itchat_ins.send(friend_status, 'filehelper')
 	else:
@@ -137,7 +139,7 @@ def note_handler(msg, itchat_ins):
 	if msg['MsgType'] == 10002:
 		# check weather it is a revoking note msg send from wechat system to the revoked
 		# which means I ignore revoking note like "you revoked a message"
-		for you in settings.YOU_DICT:
+		for you in Constant.YOU_DICT:
 			if you in msg['Text']:
 				return
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
@@ -199,7 +201,6 @@ def note_handler(msg, itchat_ins):
 				os.rename(tmp.name, newPath)
 				r = itchat_ins.send('%s%s' % (sendMsgPrefix, newPath), toUserName='filehelper')
 				os.rename(newPath, tmp.name)
-				print(r)
 		revoked_msg.revoked = True
 		revoked_msg.save()
 
@@ -215,12 +216,16 @@ def msg_handler(msg, assistant):
 	if msg['ToUserName'] == 'filehelper':
 		assisant_control_menue(msg, assistant)
 		return
+	print(msg)
 	# ignore msg sent by a user here in the client pool and receive it again
 	# detail:	wechat will send msg to both sender and receiver
 	# 			the msg sender got a msg containing a from_user_name that my server know
 	# 			but a to_user_name that my server doesn't know
 	# 			user this feature to filter the msg turned back to the sender
 	if WechatClient.objects.filter(user_name=msg['ToUserName']).count() == 0:
+		close_old_connections()
+		msg_obj = Message.create(msg, send=True);
+		msg_obj.save()
 		return
 
 	# print('%s received a msg' % get_nick_name(msg['ToUserName']))
@@ -243,17 +248,12 @@ def msg_handler(msg, assistant):
 def HandleGroupMsg(msg, assistant):
 	itchat_ins = assistant.itchat_ins
 	uin = (itchat_ins.search_friends())['Uin']
-    # drop the one send from the cilent and receive by the group(which to user is the group itself)
-	if '@@' in msg['ToUserName']:
-		return
-	# print('%s received a group msg' % get_nick_name(msg['ToUserName']))
-	# print(msg)
 
 	# initial a group or update nick name of a gorup
-	group_name = msg['FromUserName']
+	group_name = msg['FromUserName'] if '@@' in msg['FromUserName'] else msg['ToUserName']
 	group_nick_name = msg['User']['NickName']
 	close_old_connections()
-	group_qs = Group.objects.filter(name=msg['FromUserName'])
+	group_qs = Group.objects.filter(name=group_name)
 	if group_qs.count() == 0:
 		group_obj = Group(uin=uin, name=group_name, nick_name=group_nick_name)
 		group_obj.save()
@@ -261,6 +261,13 @@ def HandleGroupMsg(msg, assistant):
 		group_obj = group_qs.get(name=group_name)
 		group_obj.nick_name = group_nick_name
 		group_obj.save()
+
+	# save but don't process the one send from the cilent and receive by the group(which ToUserName is the group itself)
+	if '@@' in msg['ToUserName']:
+		close_old_connections()
+		msg_obj = Message.create(msg, is_group=True, send=True);
+		msg_obj.save()
+		return
 
 	if msg['Type'] == 'Note':
 		note_handler(msg, itchat_ins)
@@ -284,7 +291,7 @@ def HandleGroupMsg(msg, assistant):
 
 # massive platfrom msgs handler
 def mp_msg_handler(msg, assistant):
-	print(msg)
+	# print(msg)
 	# create messages model
 	close_old_connections()
 	msg_obj = Message.create(msg, is_mp=True);

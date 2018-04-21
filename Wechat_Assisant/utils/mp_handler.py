@@ -7,6 +7,8 @@ from django.conf import settings
 from .wechatmputils import *
 from ..views import push, kick
 from Wechat_Assisant.models import *
+from .constant import Constant
+
 # mp
 from multiprocessing import Process
 
@@ -22,27 +24,27 @@ def run_mp():
 
     @mp_robot.subscribe
     def subscribe(message):
-        return settings.MP_GREET
+        return Constant.MP_GREET
 
     @mp_robot.text
     def text_reply(message):
         if re.match('login', message.content, re.IGNORECASE):
             push_res = mp_pushlogin(message)
             if push_res:
-                rely_text = settings.MP_COMFIRM_LOGIN
+                rely_text = Constant.MP_COMFIRM_LOGIN
                 return rely_text
             else:
                 return mp_login(message)
         elif re.match('function', message.content, re.IGNORECASE):
-            return settings.MP_FUNCTION
+            return Constant.MP_FUNCTION
         elif re.match('how', message.content, re.IGNORECASE):
-            return settings.MP_HOW_LOGIN
+            return Constant.MP_HOW_LOGIN
         elif re.match('kick', message.content, re.IGNORECASE) \
-                and message.source == settings.ADMIN_OPENID:
+                and message.source == Constant.ADMIN_OPENID:
             mp_kick()
             return "Done"
         else:
-            return settings.MP_HELP
+            return Constant.MP_HELP
 
     def mp_login(message):
         # otain short url from existed records or create a new record
@@ -52,7 +54,7 @@ def run_mp():
         sid = url.id + 10000
         s_url = 'http://%s/wm/%s' % (settings.WECHAT_MANAGER_SERVER, sid)
         # create reply msg
-        rely_text = "%s\n%s" % (settings.MP_LOGIN_VIA_LINK, s_url)
+        rely_text = "%s\n%s" % (Constant.MP_LOGIN_VIA_LINK, s_url)
         return rely_text
 
     def mp_pushlogin(message):
