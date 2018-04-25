@@ -216,7 +216,7 @@ def msg_handler(msg, assistant):
 	if msg['ToUserName'] == 'filehelper':
 		assisant_control_menue(msg, assistant)
 		return
-	print(msg)
+	# print(msg)
 	# ignore msg sent by a user here in the client pool and receive it again
 	# detail:	wechat will send msg to both sender and receiver
 	# 			the msg sender got a msg containing a from_user_name that my server know
@@ -252,15 +252,9 @@ def HandleGroupMsg(msg, assistant):
 	# initial a group or update nick name of a gorup
 	group_name = msg['FromUserName'] if '@@' in msg['FromUserName'] else msg['ToUserName']
 	group_nick_name = msg['User']['NickName']
+	new_values = {'uin': uin, 'name':group_name, 'nick_name':group_nick_name}
 	close_old_connections()
-	group_qs = Group.objects.filter(name=group_name)
-	if group_qs.count() == 0:
-		group_obj = Group(uin=uin, name=group_name, nick_name=group_nick_name)
-		group_obj.save()
-	elif group_qs.count() == 1 and group_nick_name != group_qs.get(name=group_name).nick_name:
-		group_obj = group_qs.get(name=group_name)
-		group_obj.nick_name = group_nick_name
-		group_obj.save()
+	group_obj, created = Group.objects.update_or_create(uin=uin, name=group_name, defaults=new_values,)
 
 	# save but don't process the one send from the cilent and receive by the group(which ToUserName is the group itself)
 	if '@@' in msg['ToUserName']:
