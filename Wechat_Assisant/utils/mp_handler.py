@@ -54,7 +54,7 @@ def run_mp():
         sid = url.id + 10000
         s_url = 'http://%s/wm/%s' % (settings.WECHAT_MANAGER_SERVER, sid)
         # create reply msg
-        rely_text = "%s\n%s" % (Constant.MP_LOGIN_VIA_LINK, s_url)
+        rely_text = Constant.MP_LOGIN_VIA_LINK % s_url
         return rely_text
 
     def mp_pushlogin(message):
