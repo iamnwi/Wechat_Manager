@@ -1,5 +1,5 @@
 # -*- coding:utf8 -*-
-import os, time, re, io, sys, shutil
+import os, time, re, io, sys, shutil, pytz, datetime
 import requests
 import json
 import tempfile
@@ -34,6 +34,13 @@ def audio2text(audio_path, audio_format="pcm", sample_rate="8000"):
 		result = "[抱歉，语音转文字功能暂时不可用，请听语音档]"
 	return result
 
+def t_readable(t):
+	sh = pytz.timezone('Asia/Shanghai')
+	dt = datetime.datetime.strptime(time.ctime(int(t)), "%a %b %d %H:%M:%S %Y")
+	t_loc = sh.localize(dt)
+	t_read = t_loc.strftime('%Y-%m-%d %H:%M:%S %Z%z')
+	return t_read
+
 def get_group_notify_context(notify_seg):
 	returnList = []
 	begin_notify_msg = notify_seg['begin']
@@ -46,7 +53,7 @@ def get_group_notify_context(notify_seg):
 	group_msg_qs = Message.objects.filter(msg_is_group=True, group_name=group_name, \
 											msg_uin=to_uin, msg_time__range=(start, end))
 	# concatenate messages, converting recording to text
-	showntime = time.ctime(int(begin_notify_msg.msg_time))
+	showntime = t_readable(begin_notify_msg.msg_time)
 	if group_msg_qs.count() > 0:
 		group_nick_name = get_group_nick_name(begin_notify_msg.group_name)
 		send_text = u'[' + showntime + '] 你在群聊 "'+ group_nick_name + u'" 中收到提及你的消息：\n'
@@ -144,7 +151,7 @@ def note_handler(msg, itchat_ins):
 				return
 		revoked_msg_id = re.search("\<msgid\>(.*?)\<\/msgid\>", msg['Content']).group(1)
 		revoked_msg = get_msg(msg_id=revoked_msg_id)
-		showntime = time.ctime(int(revoked_msg.msg_time))
+		showntime = t_readable(revoked_msg.msg_time)
 		if revoked_msg.msg_is_group:
 			from_nick_name = revoked_msg.sender_nick_name
 			group_nick_name = get_group_nick_name(revoked_msg.group_name)
