@@ -26,7 +26,7 @@ def read_db(weeknum):
     w = Week(datetime.datetime.now().year, weeknum)
     mon_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
     sun_dt = datetime.datetime.combine(w.sunday(), datetime.datetime.max.time())
-    end_dt = sun_dt + datetime.timedelta(hours=4)
+    end_dt = sun_dt + datetime.timedelta(hours=3)
     begin_stamp = mon_dt.timestamp()
     end_stamp = end_dt.timestamp()
 
@@ -261,7 +261,7 @@ class User:
 
             midnight4am = showntime.replace(hour=4, minute=0, second=0, microsecond=0)
             # if midnight1am < showntime and midnight4am > showntime:
-            wday = showntime.weekday() if midnight4am < showntime or showntime.weekday() == 0 else showntime.weekday()-1
+            wday = showntime.weekday() if midnight4am < showntime else showntime.weekday()-1
             # showntime.astimezone(pytz.timezone('Asia/Shanghai'))
             # latest_time[wday] = showntime.replace(tzinfo=timezone.utc).timestamp()
             # latest_time[wday] = showntime.timestamp()
