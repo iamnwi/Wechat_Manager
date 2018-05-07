@@ -25,9 +25,10 @@ def read_db(weeknum):
     dfs = {}
     w = Week(datetime.datetime.now().year, weeknum)
     mon_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
-    sun_dt = datetime.datetime.combine(w.sunday(), datetime.datetime.min.time())
+    sun_dt = datetime.datetime.combine(w.sunday(), datetime.datetime.max.time())
+    end_dt = sun_dt + datetime.timedelta(hours=4)
     begin_stamp = mon_dt.timestamp()
-    end_stamp = sun_dt.timestamp()
+    end_stamp = end_dt.timestamp()
 
     close_old_connections()
     qs = WechatClient.objects.all()

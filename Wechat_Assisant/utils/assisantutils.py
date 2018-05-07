@@ -124,6 +124,9 @@ def assisant_control_menue(msg, assistant):
 			print('client(openid=%s) require to delete his/her records, finished' % assistant.openid)
 		elif re.match('friend', msgContent, re.IGNORECASE):
 			assistant.itchat_ins.send(Constant.CHECK_FRIEND_MSG, 'filehelper')
+		elif re.match('report', msgContent, re.IGNORECASE):
+			report_link = 'http://wechat-helper.com/wm/data?openid=%s' % assistant.openid
+			assistant.itchat_ins.send(Constant.VISIT_REPORT % report_link, 'filehelper')
 		else:
 			assistant.itchat_ins.send(Constant.UNSUPPORTED_CONTROL_MSG, toUserName='filehelper')
 			print('It is an unsupported control message.')
