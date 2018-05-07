@@ -10,11 +10,14 @@ from Wechat_Assisant.models import *
 from .utils.assisant import Assisant
 from .utils.wechatmputils import *
 from .utils.constant import Constant
+from .analyze.analyze import analyze
 
 import time
 import base64
 import hashlib
 import traceback
+import datetime
+from datetime import timezone
 
 # mp
 from multiprocessing import Process
@@ -24,6 +27,9 @@ import threading
 # Get an instance of a logger
 import logging
 logger = logging.getLogger(__name__)
+
+p = Process(target=analyze, args=())
+p.start()
 
 def push(openid):
     wc = get_wc(openid=openid)
@@ -61,7 +67,25 @@ def index(request):
     return render(request, 'index.html', {})
 
 def data(request):
-    return render(request, 'data.html', {})
+    if request.method == 'GET':
+        data = request.GET
+    elif request.method == 'POST':
+        data = request.POST
+
+    if 'openid' in data:
+        today = datetime.date.today()
+        # today = datetime.datetime(2018, 5, 4, 18, 00)
+        weekday = today.weekday()
+        start_delta = datetime.timedelta(days=weekday, weeks=1)
+        start_of_week = today - start_delta
+        weeknum = start_of_week.isocalendar()[1]
+        year = start_of_week.isocalendar()[0]
+        analyze_obj = analyze_obj_get(data['openid'], year, weeknum)
+        print('%s, %s, %s' % (year, weeknum, analyze_obj))
+        if analyze_obj:
+            return render(request, 'data.html', {'info':json.dumps(analyze_obj.result)})
+
+    return JsonResponse({'code': '400'})
 
 def extend(request, sid=None):
     if sid is None:

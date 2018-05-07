@@ -1,8 +1,9 @@
 <html>
 <head>
-<link rel="stylesheet" type="text/css" href="/static/js/fullPage/dist/jquery.fullPage.css" />
+<link rel="stylesheet" type="text/css" href="/static/js/fullPage/dist/jquery.fullpage.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/bubble_chat.css" />
 
-<script src="http://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<script src="/static/js/jquery.min.js"></script>
 
 <!-- This following line is optional. Only necessary if you use the option css3:false and you want to use other easing effects rather than "linear", "swing" or "easeInOutCubic". -->
 <script src="/static/js/fullPage/vendors/jquery.easings.min.js"></script>
@@ -11,103 +12,382 @@
 <!-- This following line is only necessary in the case of using the option `scrollOverflow:true` -->
 <script type="text/javascript" src="/static/js/fullPage/vendors/scrolloverflow.min.js"></script>
 
-<script type="text/javascript" src="/static/js/fullPage/dist/jquery.fullPage.js"></script>
+<script type="text/javascript" src="/static/js/fullPage/dist/jquery.fullpage.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.min.js"></script>
+<script type="text/javascript" src="/static/js/chartjs_2.4.0.min.js"></script>
+
+<style>
+  #welcome_msg {
+    text-align:center;
+    font-size: 200%;
+    line-height: 200%;
+  }
+  #icon {
+    text-align:center;
+  }
+  #title {
+    text-align:center;
+    font-size: 300%;
+    font-weight:bold;
+    color: white;
+  }
+  #title > p {
+    display: inline-block;
+    background-color: rgba(54, 162, 235, 0.8);
+  }
+</style>
 
 <script>
-  function draw_bar(chart_id) {
+  window.chartColors = {
+    red: 'rgb(255, 99, 132)',
+    orange: 'rgb(255, 159, 64)',
+    yellow: 'rgb(255, 205, 86)',
+    green: 'rgb(75, 192, 192)',
+    blue: 'rgb(54, 162, 235)',
+    purple: 'rgb(153, 102, 255)',
+    grey: 'rgb(201, 203, 207)',
+    a_blue: 'rgba(54, 162, 235, 0.5)',
+    a_yellow: 'rgba(255, 205, 86, 0.5)',
+    a_green: 'rgba(75, 192, 192, 0.5)',
+    a_orange: 'rgba(255, 159, 64, 0.5)',
+    a_red: 'rgba(255, 99, 132, 0.5)',
+  };
+
+  function show_msg(div_id, msg) {
+    $("#"+div_id).empty();
+    $("#"+div_id).append("<p>"+msg+"</p>");
+  }
+
+  function sec_to_hh_mm_ss(delta) {
+    tmp = getDateOfISOWeek(weeknum, year)
+    msec = tmp.setSeconds(tmp.getSeconds() + delta/1000)
+    secs = tmp.getHours()*3600+tmp.getMinutes()*60+tmp.getSeconds()
+
+    const hour = '0' + Math.floor(secs/3600)
+    const min = '0' + Math.floor((secs%3600)/60)
+    const sec = '0' + Math.floor((secs%60))
+    return [hour, min, sec].map(s => {return s.substr(s.length-2)}).join(':')
+  }
+
+  function getDateOfISOWeek(w, y) {
+    var simple = new Date(y, 0, 1 + (w - 1) * 7);
+    var dow = simple.getDay();
+    var ISOweekStart = simple;
+    if (dow <= 4)
+        ISOweekStart.setDate(simple.getDate() - simple.getDay() + 1);
+    else
+        ISOweekStart.setDate(simple.getDate() + 8 - simple.getDay());
+    return ISOweekStart;
+  }
+
+  function draw_bar(chart_id, data, options) {
     var ctx = document.getElementById(chart_id).getContext('2d');
     var myChart = new Chart(ctx, {
         type: 'bar',
-        data: {
-            labels: ["Red", "Blue", "Yellow", "Green", "Purple", "Orange"],
-            datasets: [{
-                label: '# of Votes',
-                data: [12, 19, 3, 5, 2, 3],
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.2)',
-                    'rgba(54, 162, 235, 0.2)',
-                    'rgba(255, 206, 86, 0.2)',
-                    'rgba(75, 192, 192, 0.2)',
-                    'rgba(153, 102, 255, 0.2)',
-                    'rgba(255, 159, 64, 0.2)'
-                ],
-                borderColor: [
-                    'rgba(255,99,132,1)',
-                    'rgba(54, 162, 235, 1)',
-                    'rgba(255, 206, 86, 1)',
-                    'rgba(75, 192, 192, 1)',
-                    'rgba(153, 102, 255, 1)',
-                    'rgba(255, 159, 64, 1)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            scales: {
-                yAxes: [{
-                    ticks: {
-                        beginAtZero:true
-                    }
-                }]
-            }
-        }
+        data: data,
+        options: options
     });
   }
 
-  function draw_doughnut(chart_id) {
+  function draw_doughnut(chart_id, data, options) {
     // And for a doughnut chart
     var ctx = document.getElementById(chart_id).getContext('2d');
     var myDoughnutChart = new Chart(ctx, {
         type: 'doughnut',
-        data: {
-          datasets: [{
-              data: [300, 50, 100],
-              backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-              ]
-          }],
-
-          // These labels appear in the legend and in the tooltips when hovering different arcs
-          labels: [
-              'Red',
-              'Yellow',
-              'Blue'
-          ]
-        },
-        // options: options
+        data: data,
+        options: options
     });
   }
 
-  $(document).ready(function() {
-  	$('#fullpage').fullpage({
-      anchors: ['firstPage', 'secondPage', 'thirdPage', 'lastPage'],
+  function draw_line(chart_id, data, options) {
+    var ctx = document.getElementById(chart_id).getContext('2d');
+    var myLineChart = new Chart(ctx, {
+        type: 'line',
+        data: data,
+        options: options
+    });
+  }
 
-      // onLeave: function(index, nextIndex, direction){
-    	// 	var leavingSection = $(this);
-      //
-      //   if (nextIndex == 1) {
-      //     setTimeout(function() {draw_bar("s1_chart")}, 800);
-      //   }
-      //   else if (nextIndex == 2) {
-      //     setTimeout(function() {draw_doughnut("s2_chart")}, 800);
-      //   }
-    	// }
+  function sex(data) {
+    var data = {
+      datasets: [{
+          // sex: 0-unknow, 1-male, 2-female
+          data: [data['sex_cnt']['2'], data['sex_cnt']['1'], data['sex_cnt']['0']],
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.8)',
+            'rgba(54, 162, 235, 0.8)',
+            'rgba(201, 203, 207, 0.8)',
+          ]
+      }],
+      labels: ['女性', '男性', '未知']
+    }
+    var options = {
+      title: {
+          display: true,
+          fontSize: 30,
+          text: '好友性别统计'
+      },
+    }
+    draw_doughnut("sex_chart", data, options)
+  }
+
+  function message(data) {
+    var data = {
+      labels: ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+          label: '每日总消息数',
+          fill: false,
+          pointRadius: 10,
+          tension: 0,
+          borderWidth: 6,
+          backgroundColor: window.chartColors.a_blue,
+          borderColor: window.chartColors.blue,
+          data: data['msg_per_wday_ls'],
+      }, {
+          label: '每日群消息总数',
+          fill: false,
+          pointRadius: 10,
+          tension: 0,
+          borderWidth: 6,
+          backgroundColor: window.chartColors.a_red,
+          borderColor: window.chartColors.red,
+          data: data['g_msg_per_wday_ls'],
+      }, {
+          label: '每日私聊消息总数',
+          fill: false,
+          pointRadius: 10,
+          tension: 0,
+          borderWidth: 6,
+          backgroundColor: window.chartColors.a_yellow,
+          borderColor: window.chartColors.yellow,
+          data: data['one2one_msg_per_wday_ls'],
+      }, {
+          label: '每日公众号消息总数',
+          fill: false,
+          pointRadius: 10,
+          tension: 0,
+          borderWidth: 6,
+          backgroundColor: window.chartColors.a_green,
+          borderColor: window.chartColors.green,
+          data: data['mp_msg_per_wday_ls'],
+      }],
+    }
+    var options = {
+      title: {
+          display: true,
+          fontSize: 30,
+          text: '上周每日消息数'
+      },
+      scales: {
+        yAxes: [{
+          scaleLabel: {
+            display: true,
+            labelString: '消息条数'
+          }
+        }]
+      }
+    }
+    draw_line("message_chart", data, options)
+  }
+
+  function group(data) {
+    var data = {
+      labels: data['g_msg_per_group'].slice(0, 5).map(t => {return t[0]}),
+      datasets: [{
+          borderWidth: 1,
+          backgroundColor: [
+              'rgba(255, 99, 132, 0.6)',
+              'rgba(54, 162, 235, 0.6)',
+              'rgba(255, 206, 86, 0.6)',
+              'rgba(75, 192, 192, 0.6)',
+              'rgba(153, 102, 255, 0.6)',
+          ],
+          borderColor: [
+              'rgba(255,99,132,1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+          ],
+          data: data['g_msg_per_group'].slice(0, 5).map(t => {return t[1]}),
+      }],
+    }
+    var options = {
+      legend: {
+        display: false
+      },
+      title: {
+          display: true,
+          fontSize: 30,
+          text: '上周 Top5 水群'
+      },
+      scales: {
+          yAxes: [{
+              ticks: {
+                  beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: '消息条数'
+              }
+          }]
+      }
+    }
+    draw_bar("group_chart", data, options)
+  }
+
+  function time(raw_data) {
+    data = raw_data.message
+    year = raw_data.year
+    weeknum = raw_data.weeknum
+    wdaylabels = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'];
+    var xlabels = Array();
+    var latest_msg_t_arr = Array();
+    arr = data['latest_msg_per_wday_ls'];
+    for (var i = 0; i < arr.length; i++) {
+      ts = arr[i]
+      if (ts == 0) continue;
+      xlabels.push(wdaylabels[i])
+      var d = new Date(ts*1000);
+      tmp = getDateOfISOWeek(weeknum, year)
+      midnight = tmp.setDate(tmp.getDate() + i+1);
+      delta = d-midnight
+      latest_msg_t_arr.push(delta);
+    }
+    var data = {
+      labels: xlabels,
+      datasets: [{
+          label: '每晚最后消息时间',
+          fill: true,
+          pointRadius: 10,
+          tension: 0,
+          borderWidth: 6,
+          backgroundColor: window.chartColors.a_blue,
+          borderColor: window.chartColors.blue,
+          data: latest_msg_t_arr,
+      }],
+    }
+    var options = {
+      legend: {
+        display: false
+      },
+      title: {
+          display: true,
+          fontSize: 30,
+          text: '上周每晚最后消息时间'
+      },
+      scales: {
+        yAxes: [{
+          ticks: {
+            userCallback: function(v) { return sec_to_hh_mm_ss(v) },
+            stepSize: 3600*1000
+          }
+        }]
+      },
+      tooltips: {
+        callbacks: {
+          label: function(tooltipItem, data) {
+            return data.datasets[tooltipItem.datasetIndex].label + ': ' + sec_to_hh_mm_ss(tooltipItem.yLabel)
+          }
+        }
+      }
+    }
+    draw_line("time_chart", data, options)
+  }
+
+  function city(data) {
+    for (var i=0; i<data['province_cnt'].length && i<5; i++) {
+      if (data['province_cnt'][i][0] == '') {
+        data['province_cnt'].splice(i, 1);
+        break;
+      }
+    }
+    var data = {
+      labels: data['province_cnt'].slice(0, 5).map(t => {return t[0]}),
+      datasets: [{
+          borderWidth: 1,
+          backgroundColor: [
+              'rgba(255, 99, 132, 0.6)',
+              'rgba(54, 162, 235, 0.6)',
+              'rgba(255, 206, 86, 0.6)',
+              'rgba(75, 192, 192, 0.6)',
+              'rgba(153, 102, 255, 0.6)',
+          ],
+          borderColor: [
+              'rgba(255,99,132,1)',
+              'rgba(54, 162, 235, 1)',
+              'rgba(255, 206, 86, 1)',
+              'rgba(75, 192, 192, 1)',
+              'rgba(153, 102, 255, 1)',
+          ],
+          data: data['province_cnt'].slice(0, 5).map(t => {return t[1]}),
+      }],
+    }
+    var options = {
+      legend: {
+        display: false
+      },
+      title: {
+          display: true,
+          fontSize: 30,
+          text: 'Top5 朋友地区'
+      },
+      scales: {
+          yAxes: [{
+              ticks: {
+                  beginAtZero:true
+              },
+              scaleLabel: {
+                display: true,
+                labelString: '人数'
+              }
+          }]
+      }
+    }
+    draw_bar("city_chart", data, options)
+  }
+
+  function set_index(data) {
+    user_nick = data['user_nick']
+    weeknum = data['weeknum']
+    year = data['year']
+    welcome_msg = '嗨, '+user_nick+',<br/>小蜜为你送来上周('+year+'年第'+weeknum+'周)的社交消息统计报告啦～<br/>请上划查看喔';
+    icon_img = '<img src="/static/imgs/mp_icon.png"></img>'
+    show_msg('icon', icon_img)
+    show_msg('welcome_msg', welcome_msg)
+  }
+
+  $(document).ready(function() {
+    var info = {{ info|safe }};
+    var data = JSON.parse(info);
+
+    set_index(data)
+
+  	$('#fullpage').fullpage({
+      anchors: ['indexPage', 'sexPage', 'cityPage', 'messagePage', 'groupPage', 'timePage'],
 
       afterLoad: function(anchorLink, index){
     		var loadedSection = $(this);
 
-    		//using index
-    		if(anchorLink == 'firstPage'){
-          draw_bar("s1_chart")
+    		//using anchorLink
+    		if(anchorLink == 'sexPage'){
+          sex(data.friend);
     		}
 
-    		//using anchorLink
-    		if(anchorLink == 'secondPage'){
-          draw_doughnut("s2_chart")
+        if(anchorLink == 'cityPage'){
+          city(data.friend);
+        }
+
+        if(anchorLink == 'messagePage'){
+          message(data.message);
+    		}
+
+        if(anchorLink == 'groupPage'){
+          group(data.message);
+    		}
+
+        if(anchorLink == 'timePage'){
+          time(data);
     		}
     	}
     });
@@ -117,14 +397,28 @@
 
 <body>
   <div id="fullpage">
-  	<div class="section">
-      <canvas id="s1_chart" width="400" height="400"></canvas>
+    <div class="section">
+      <div id="title">
+        <p>&nbsp;&nbsp;[ 社交数据周报 ]&nbsp;&nbsp;</p>
+      </div>
+      <div id="icon"></div>
+      <div id="welcome_msg"></div>
     </div>
   	<div class="section">
-      <canvas id="s2_chart" width="400" height="400"></canvas>
+      <canvas id="sex_chart" width="400" height="400"></canvas>
     </div>
-  	<div class="section">Some section 3</div>
-  	<div class="section">Some section 4</div>
+    <div class="section">
+      <canvas id="city_chart" width="400" height="400"></canvas>
+    </div>
+  	<div class="section">
+      <canvas id="message_chart" width="400" height="400"></canvas>
+    </div>
+    <div class="section">
+      <canvas id="group_chart" width="400" height="400"></canvas>
+    </div>
+  	<div class="section">
+      <canvas id="time_chart" width="400" height="400"></canvas>
+    </div>
   </div>
 </body>
 </html>

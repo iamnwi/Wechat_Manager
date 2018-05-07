@@ -90,8 +90,11 @@ class Message(models.Model):
             msgText = msg['Text']
 
         # get receiver uin by receiver's user name
-        to_wc = get_wc(user_name=msgTo)
-        msgUin = to_wc.uin if to_wc is not None else 'Unknown'
+        if send:
+            wc = get_wc(user_name=msgFrom)
+        else:
+            wc = get_wc(user_name=msgTo)
+        msgUin = wc.uin if to_wc is not None else 'Unknown'
 
         group_name = ''
         s_user_name = ''
@@ -187,6 +190,15 @@ class ShortUrl(models.Model):
     def __str__(self):
         return ("openid:%s" % self.openid)
 
+class Analyze(models.Model):
+    openid = models.CharField(max_length=200, blank=False)
+    result = models.TextField(blank=False)
+    year = models.IntegerField(blank=False, default=2018)
+    weeknum = models.IntegerField(blank=False)
+
+    def __str__(self):
+        return ("openid:%s" % self.openid)
+
 # DB operation tool functions
 def get_group(name=None, nick_name=None):
     close_old_connections()
@@ -230,6 +242,11 @@ def get_nick_name(user_name):
     wc = get_wc(user_name=user_name)
     if wc:
         return wc.nick_name
+
+def analyze_obj_get(openid, year, weeknum):
+    qs = Analyze.objects.filter(openid=openid, year=year, weeknum=weeknum)
+    if qs.count() == 1:
+        return qs[0]
 
 # find display name to the specific user in the group where the message comes from.
 def get_display_name_group(msg, user_name):
