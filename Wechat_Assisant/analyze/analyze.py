@@ -78,16 +78,21 @@ def t_avg(ls, weeknum):
     if len(ls) is 0:
         return 0
     w = Week(datetime.datetime.now().year, weeknum)
-    midnight_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
+    mon_midnight_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
     acc = 0
+    lent = 0
     for i in range(7):
         if ls[i] == 0: continue
+        lent += 1
         dt = datetime.datetime.strptime(time.ctime(ls[i]), "%a %b %d %H:%M:%S %Y")
-        midnight_dt = midnight_dt + datetime.timedelta(days=1)
-        delta = dt - midnight_dt
+        min_dt = mon_midnight_dt + datetime.timedelta(days=i+1)
+        delta = dt - min_dt
+        print(delta.total_seconds())
         acc += delta.total_seconds()
-
-    return acc/len(ls)
+    if lent == 0: return 0
+    else:
+        print('avg %lf' % (acc/lent))
+        return acc/lent
 
 def avg(ls):
     if len(ls) is 0:
@@ -321,7 +326,9 @@ class User:
         # print('-------latest msg per day-------')
         msg_ana_dict['latest_msg_per_wday_ls'] = latest_time
         # calc average latest time of a week
-        User.inter_user_statistic['avg_latest_t_p1_ls'].append(t_avg(latest_time, self.analyze_dict['weeknum']))
+        avg_latest_t = t_avg(latest_time, self.analyze_dict['weeknum'])
+        if avg_latest_t != 0:
+            User.inter_user_statistic['avg_latest_t_p1_ls'].append(avg_latest_t)
         # wday = 1
         # for cnt in latest_time:
             # if cnt:
