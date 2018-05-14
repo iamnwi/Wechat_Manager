@@ -94,7 +94,7 @@ class Message(models.Model):
             wc = get_wc(user_name=msgFrom)
         else:
             wc = get_wc(user_name=msgTo)
-        msgUin = wc.uin if to_wc is not None else 'Unknown'
+        msgUin = wc.uin if wc is not None else 'Unknown'
 
         group_name = ''
         s_user_name = ''
