@@ -14,7 +14,7 @@
 
 <script type="text/javascript" src="/static/js/fullPage/dist/jquery.fullpage.js"></script>
 
-<script type="text/javascript" src="/static/js/chartjs_2.4.0.min.js"></script>
+<script type="text/javascript" src="/static/js/chartjs_2.7.2.bundle.min.js"></script>
 
 <style>
   #welcome_msg {
@@ -52,6 +52,9 @@
     a_orange: 'rgba(255, 159, 64, 0.5)',
     a_red: 'rgba(255, 99, 132, 0.5)',
   };
+
+  Chart.defaults.global.title.fontSize = 30
+  Chart.defaults.global.legend.labels.fontSize = 22
 
   function show_msg(div_id, msg) {
     $("#"+div_id).empty();
@@ -131,6 +134,101 @@
     draw_doughnut("sex_chart", data, options)
   }
 
+  function inter_sex(data, inter_data) {
+    var data = {
+      datasets: [{
+          label: '你的数据',
+          // sex: 0-unknow, 1-male, 2-female
+          data: [data['sex_cnt']['2']/data['total_fd'], data['sex_cnt']['1']/data['total_fd']],
+          backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      },
+      {
+        label: '平均数据(参于统计用户共'+inter_data['sex_sample_cnt']+'位)',
+        // sex: 0-unknow, 1-male, 2-female
+        data: [inter_data['homo_sex_avg_ratio'], inter_data['heter_sex_avg_ratio']],
+        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+      }],
+      labels: ['同性', '异性'],
+    }
+    var options = {
+      title: {
+          display: true,
+          text: '好友性别比率'
+      },
+      scales: {
+          xAxes: [{
+            ticks: {
+                fontSize: 22,
+            }
+          }],
+          yAxes: [{
+              ticks: {
+                  beginAtZero:true,
+                  fontSize: 20,
+              },
+              scaleLabel: {
+                display: true,
+                labelString: '比率',
+                fontSize: 22,
+              }
+          }]
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
+      }
+    }
+    draw_bar("inter_sex_chart", data, options)
+  }
+
+  function inter_message(data, inter_data) {
+    var data = {
+      datasets: [{
+          label: '你的数据',
+          // sex: 0-unknow, 1-male, 2-female
+          data: [data['total_message'], data['g_msg_cnt'], data['one2one_msg'],  data['mp_msg_cnt']],
+          backgroundColor: 'rgba(255, 99, 132, 0.8)',
+      },
+      {
+        label: '平均数据(参于统计用户:总消息'+inter_data['tot_msg_sample_cnt']+'位, 群聊'+inter_data['g_msg_sample_cnt']+'位, 私聊'+inter_data['one2one_msg_sample_cnt']+'位, 公众号消息'+inter_data['mp_msg_sample_cnt']+'位)',
+        // sex: 0-unknow, 1-male, 2-female
+        data: [inter_data['total_msg_avg'], inter_data['g_msg_avg'], inter_data['one2one_msg_avg'], inter_data['mp_msg_avg']],
+        backgroundColor: 'rgba(54, 162, 235, 0.8)',
+      }],
+      labels: ['总消息', '群聊', '私聊', '公众号消息'],
+    }
+    var options = {
+      title: {
+          display: true,
+          text: '不同类型消息总数'
+      },
+      scales: {
+          xAxes: [{
+            ticks: {
+                fontSize: 22,
+            }
+          }],
+          yAxes: [{
+              ticks: {
+                  beginAtZero:true,
+                  fontSize: 20,
+              },
+              scaleLabel: {
+                display: true,
+                labelString: '消息条数',
+                fontSize: 22,
+              }
+          }]
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
+      }
+    }
+    draw_bar("inter_message_chart", data, options)
+  }
   function message(data) {
     var data = {
       labels: ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'],
@@ -175,16 +273,30 @@
     var options = {
       title: {
           display: true,
-          fontSize: 30,
           text: '上周每日消息数'
       },
       scales: {
+        xAxes: [{
+          ticks: {
+              fontSize: 22,
+          }
+        }],
         yAxes: [{
+          ticks: {
+              beginAtZero:true,
+              fontSize: 16,
+          },
           scaleLabel: {
             display: true,
-            labelString: '消息条数'
+            labelString: '消息条数',
+            fontSize: 22,
           }
         }]
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
       }
     }
     draw_line("message_chart", data, options)
@@ -218,31 +330,44 @@
       },
       title: {
           display: true,
-          fontSize: 30,
           text: '上周 Top5 水群'
       },
       scales: {
-          yAxes: [{
-              ticks: {
-                  beginAtZero:true
-              },
-              scaleLabel: {
-                display: true,
-                labelString: '消息条数'
-              }
-          }]
+        xAxes: [{
+          ticks: {
+              fontSize: 22,
+          }
+        }],
+        yAxes: [{
+            ticks: {
+                beginAtZero:true,
+                fontSize: 20,
+            },
+            scaleLabel: {
+              display: true,
+              labelString: '消息条数',
+              fontSize: 22,
+            }
+        }]
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
       }
     }
     draw_bar("group_chart", data, options)
   }
 
-  function time(raw_data) {
+  function time(raw_data, inter_data) {
+    console.log(inter_data['latest_t_avg'])
     data = raw_data.message
     year = raw_data.year
     weeknum = raw_data.weeknum
     wdaylabels = ['Mon', 'Tue', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun'];
     var xlabels = Array();
     var latest_msg_t_arr = Array();
+    var avg = Array();
     arr = data['latest_msg_per_wday_ls'];
     for (var i = 0; i < arr.length; i++) {
       ts = arr[i]
@@ -253,36 +378,58 @@
       midnight = tmp.setDate(tmp.getDate() + i+1);
       delta = d-midnight
       latest_msg_t_arr.push(delta);
+
+      avg.push(inter_data['latest_t_avg']*1000)
     }
     var data = {
       labels: xlabels,
       datasets: [{
-          label: '每晚最后消息时间',
-          fill: true,
+          label: '你的数据',
+          fill: '+1',
           pointRadius: 10,
           tension: 0,
           borderWidth: 6,
           backgroundColor: window.chartColors.a_blue,
           borderColor: window.chartColors.blue,
           data: latest_msg_t_arr,
+      },
+      {
+        label: '平均数据(参于统计用户共'+inter_data['latest_t_sample_cnt']+'位)',
+        fill: false,
+        pointRadius: 10,
+        tension: 0,
+        borderWidth: 6,
+        backgroundColor: window.chartColors.a_red,
+        borderColor: window.chartColors.red,
+        data: avg,
       }],
     }
     var options = {
       legend: {
-        display: false
+        display: true
       },
       title: {
           display: true,
-          fontSize: 30,
           text: '上周每晚最后消息时间'
       },
       scales: {
+        xAxes: [{
+          ticks: {
+              fontSize: 22,
+          }
+        }],
         yAxes: [{
           ticks: {
             userCallback: function(v) { return sec_to_hh_mm_ss(v) },
-            stepSize: 3600*1000
+            stepSize: 3600*1000,
+            fontSize: 22,
           }
         }]
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
       },
       tooltips: {
         callbacks: {
@@ -329,20 +476,31 @@
       },
       title: {
           display: true,
-          fontSize: 30,
           text: 'Top5 朋友地区'
       },
       scales: {
+          xAxes: [{
+            ticks: {
+                fontSize: 22,
+            }
+          }],
           yAxes: [{
               ticks: {
-                  beginAtZero:true
+                  beginAtZero:true,
+                  fontSize: 20,
               },
               scaleLabel: {
                 display: true,
-                labelString: '人数'
+                labelString: '人数',
+                fontSize: 22,
               }
           }]
-      }
+      },
+      layout: {
+        padding: {
+          left: 30,
+        }
+      },
     }
     draw_bar("city_chart", data, options)
   }
@@ -360,11 +518,13 @@
   $(document).ready(function() {
     var info = {{ info|safe }};
     var data = JSON.parse(info);
+    var inter = {{ inter_user|safe }};
+    var inter_data = JSON.parse(inter);
 
     set_index(data)
 
   	$('#fullpage').fullpage({
-      anchors: ['indexPage', 'sexPage', 'cityPage', 'messagePage', 'groupPage', 'timePage'],
+      anchors: ['indexPage', 'sexPage', 'inter_sexPage', 'cityPage', 'inter_messagePage', 'messagePage', 'groupPage', 'timePage'],
 
       afterLoad: function(anchorLink, index){
     		var loadedSection = $(this);
@@ -372,11 +532,20 @@
     		//using anchorLink
     		if(anchorLink == 'sexPage'){
           sex(data.friend);
+          inter_sex(data.friend, inter_data);
+    		}
+
+        if(anchorLink == 'inter_sexPage'){
+          inter_sex(data.friend, inter_data);
     		}
 
         if(anchorLink == 'cityPage'){
           city(data.friend);
         }
+
+        if(anchorLink == 'inter_messagePage'){
+          inter_message(data.message, inter_data);
+    		}
 
         if(anchorLink == 'messagePage'){
           message(data.message);
@@ -387,7 +556,7 @@
     		}
 
         if(anchorLink == 'timePage'){
-          time(data);
+          time(data, inter_data);
     		}
     	}
     });
@@ -408,7 +577,13 @@
       <canvas id="sex_chart" width="400" height="400"></canvas>
     </div>
     <div class="section">
+      <canvas id="inter_sex_chart" width="400" height="400"></canvas>
+    </div>
+    <div class="section">
       <canvas id="city_chart" width="400" height="400"></canvas>
+    </div>
+    <div class="section">
+      <canvas id="inter_message_chart" width="400" height="400"></canvas>
     </div>
   	<div class="section">
       <canvas id="message_chart" width="400" height="400"></canvas>

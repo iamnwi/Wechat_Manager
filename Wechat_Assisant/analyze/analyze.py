@@ -26,8 +26,9 @@ def read_db(weeknum):
     w = Week(datetime.datetime.now().year, weeknum)
     mon_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
     sun_dt = datetime.datetime.combine(w.sunday(), datetime.datetime.max.time())
+    begin_dt = mon_dt + datetime.timedelta(minutes=60*4+1)
     end_dt = sun_dt + datetime.timedelta(hours=3)
-    begin_stamp = mon_dt.timestamp()
+    begin_stamp = begin_dt.timestamp()
     end_stamp = end_dt.timestamp()
 
     close_old_connections()
@@ -73,8 +74,32 @@ def clean(fd_ls=None, group_ls=None, mp_ls=None):
                 nick_dict[mp['NickName']] = mp
         return list(nick_dict.values())
 
+def t_avg(ls, weeknum):
+    if len(ls) is 0:
+        return 0
+    w = Week(datetime.datetime.now().year, weeknum)
+    midnight_dt = datetime.datetime.combine(w.monday(), datetime.datetime.min.time())
+    acc = 0
+    for i in range(7):
+        if ls[i] == 0: continue
+        dt = datetime.datetime.strptime(time.ctime(ls[i]), "%a %b %d %H:%M:%S %Y")
+        midnight_dt = midnight_dt + datetime.timedelta(days=1)
+        delta = dt - midnight_dt
+        acc += delta.total_seconds()
+
+    return acc/len(ls)
+
+def avg(ls):
+    if len(ls) is 0:
+        return 0
+    acc = 0
+    for e in ls:
+        acc += e
+    return acc/len(ls)
+
 class User:
     user_dict = {}
+    inter_user_statistic = {}
 
     def __init__(self, row, mdf, gdf):
         self.openid = row['openid']
@@ -140,6 +165,7 @@ class User:
         user_nick = user['NickName']
         # user_sex = sex[user['Sex']]
         tot = len(fd_ls)-1
+        friend_ana_dict['total_fd'] = tot
         sex_count = {}
         province_count = {}
         city_count = {}
@@ -157,6 +183,12 @@ class User:
         friend_ana_dict['province_cnt'] = sorted_p
         sorted_c = sorted(city_count.items(), key=operator.itemgetter(1), reverse=True)
         friend_ana_dict['city_cnt'] = sorted_c
+
+        if fd_ls[0]['Sex'] != 0:
+            homo_sex_flag = fd_ls[0]['Sex']
+            heter_sex_flag = 1 if fd_ls[0]['Sex'] is 2 else 2
+            User.inter_user_statistic['homo_sex_ratio_ls'].append(sex_count[homo_sex_flag]/tot)
+            User.inter_user_statistic['heter_sex_ratio_ls'].append(sex_count[heter_sex_flag]/tot)
 
         # for k,v in sex_count.items():
         #     print('%s: %s, %.2lf%%' % (sex[k], v, v/tot*100))
@@ -217,6 +249,8 @@ class User:
     def message_statistic(self):
         msg_ana_dict = {}
         msg_ana_dict['total_message'] = self.mdf.shape[0]
+        if self.mdf.shape[0] != 0:
+            User.inter_user_statistic['total_msg_cnt_ls'].append(self.mdf.shape[0])
         # print('total message count: %d' % self.mdf.shape[0])
 
         if msg_ana_dict['total_message'] == 0:
@@ -226,14 +260,20 @@ class User:
 
         one2one_mdf = self.mdf[(self.mdf['msg_is_group'] == False) & (self.mdf['msg_is_mp'] == False)]
         msg_ana_dict['one2one_msg'] = one2one_mdf.shape[0]
+        if one2one_mdf.shape[0] != 0:
+            User.inter_user_statistic['one2one_msg_cnt_ls'].append(one2one_mdf.shape[0])
         # print('1-1 coversation message count: %d' % one2one_mdf.shape[0])
 
         group_mdf = self.mdf[(self.mdf['msg_is_group'] == True)]
         msg_ana_dict['g_msg_cnt'] = group_mdf.shape[0]
+        if group_mdf.shape[0] != 0:
+            User.inter_user_statistic['g_msg_cnt_ls'].append(group_mdf.shape[0])
         # print('group message count: %d' % group_mdf.shape[0])
 
         mp_mdf = self.mdf[(self.mdf['msg_is_mp'] == True)]
         msg_ana_dict['mp_msg_cnt'] = mp_mdf.shape[0]
+        if mp_mdf.shape[0] != 0:
+            User.inter_user_statistic['mp_msg_cnt_ls'].append(mp_mdf.shape[0])
         # print('mp message count: %d' % mp_mdf.shape[0])
 
         msg_ana_dict['g_msg_isat_cnt'] = group_mdf[group_mdf['is_at']==True].shape[0]
@@ -280,6 +320,8 @@ class User:
         #     wday += 1
         # print('-------latest msg per day-------')
         msg_ana_dict['latest_msg_per_wday_ls'] = latest_time
+        # calc average latest time of a week
+        User.inter_user_statistic['avg_latest_t_p1_ls'].append(t_avg(latest_time, self.analyze_dict['weeknum']))
         # wday = 1
         # for cnt in latest_time:
             # if cnt:
@@ -304,12 +346,48 @@ class User:
         self.analyze_dict['message'] = msg_ana_dict
 
     @staticmethod
+    def init_inter_user_statistic():
+        User.inter_user_statistic['homo_sex_ratio_ls'] = []
+        User.inter_user_statistic['heter_sex_ratio_ls'] = []
+        User.inter_user_statistic['total_msg_cnt_ls'] = []
+        User.inter_user_statistic['mp_msg_cnt_ls'] = []
+        User.inter_user_statistic['one2one_msg_cnt_ls'] = []
+        User.inter_user_statistic['g_msg_cnt_ls'] = []
+        User.inter_user_statistic['avg_latest_t_p1_ls'] = []
+
+    @staticmethod
+    def analyze_inter_user(year, week):
+        res_dict = {}
+        res_dict['homo_sex_avg_ratio'] = avg(User.inter_user_statistic['homo_sex_ratio_ls'])
+        res_dict['heter_sex_avg_ratio'] = avg(User.inter_user_statistic['heter_sex_ratio_ls'])
+        res_dict['sex_sample_cnt'] = len(User.inter_user_statistic['homo_sex_ratio_ls'])
+        res_dict['total_msg_avg'] = avg(User.inter_user_statistic['total_msg_cnt_ls'])
+        res_dict['tot_msg_sample_cnt'] = len(User.inter_user_statistic['total_msg_cnt_ls'])
+        res_dict['mp_msg_avg'] = avg(User.inter_user_statistic['mp_msg_cnt_ls'])
+        res_dict['mp_msg_sample_cnt'] = len(User.inter_user_statistic['mp_msg_cnt_ls'])
+        res_dict['one2one_msg_avg'] = avg(User.inter_user_statistic['one2one_msg_cnt_ls'])
+        res_dict['one2one_msg_sample_cnt'] = len(User.inter_user_statistic['one2one_msg_cnt_ls'])
+        res_dict['g_msg_avg'] = avg(User.inter_user_statistic['g_msg_cnt_ls'])
+        res_dict['g_msg_sample_cnt'] = len(User.inter_user_statistic['g_msg_cnt_ls'])
+        res_dict['latest_t_avg'] = avg(User.inter_user_statistic['avg_latest_t_p1_ls'])
+        res_dict['latest_t_sample_cnt'] = len(User.inter_user_statistic['avg_latest_t_p1_ls'])
+
+        # insert result into DB
+        res = json.dumps(res_dict)
+        # weeknum = datetime.date.today().isocalendar()[1]
+        new_values = {'openid': 'inter_user', 'result': res, 'year': year, 'weeknum': week}
+        close_old_connections()
+        obj, created = Analyze.objects.update_or_create(openid='inter_user', year=year, weeknum=week, defaults=new_values,)
+        obj.save()
+
+    @staticmethod
     def batch_create(udf, mdf, gdf):
         for index, row in udf.iterrows():
             User(row, mdf, gdf)
 
     @staticmethod
     def batch_analyze(openid=None, year=None, week=None):
+        User.init_inter_user_statistic()
         ana_ls = []
         if openid:
             ana_ls.append(User.user_dict[openid])
@@ -319,7 +397,22 @@ class User:
         for user in ana_ls:
             user.analyze(year, week)
 
+        User.analyze_inter_user(year, week)
+        User.user_dict.clear()
+        User.inter_user_statistic.clear()
+
 def analyze():
+    # today = datetime.datetime(2018, 5, 4, 18, 00)
+    # weekday = today.weekday()
+    # start_delta = datetime.timedelta(days=weekday, weeks=1)
+    # start_of_week = today - start_delta
+    # weeknum = start_of_week.isocalendar()[1]
+    # year = start_of_week.isocalendar()[0]
+    # dfs = read_db(weeknum)
+    #
+    # User.batch_create(dfs['user'], dfs['message'], dfs['group'])
+    # User.batch_analyze(year=year, week=weeknum)
+
     while True:
         today = datetime.datetime.today()
         weekday = today.weekday()
@@ -334,6 +427,5 @@ def analyze():
 
             User.batch_create(dfs['user'], dfs['message'], dfs['group'])
             User.batch_analyze(year=year, week=weeknum)
-            User.user_dict.clear()
 
         time.sleep(3600*24)
