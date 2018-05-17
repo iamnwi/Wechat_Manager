@@ -10,6 +10,7 @@ class WechatClient(models.Model):
     uin = models.CharField(max_length=200, blank=True)
     user_name = models.CharField(max_length=200, default='None')
     nick_name = models.CharField(max_length=200, default='None')
+    icon = models.BinaryField(blank=True)
     online = models.BooleanField(default=False)
     # login status
     # 0: initial status, 200: logined, 201: wait for scan, 408: qrcode timeout

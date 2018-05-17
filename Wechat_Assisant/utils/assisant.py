@@ -103,6 +103,7 @@ class Assisant():
         uin = (assistant.itchat_ins.search_friends())['Uin']
         user_name = (assistant.itchat_ins.search_friends())['UserName']
         nick_name = (assistant.itchat_ins.search_friends())['NickName']
+        icon = assistant.itchat_ins.get_head_img(userName=user_name)
         friend_list = json.dumps(assistant.itchat_ins.get_friends(update=True))
         group_list = json.dumps(assistant.itchat_ins.get_chatrooms(update=True))
         mp_list = json.dumps(assistant.itchat_ins.get_mps(update=True))
@@ -122,7 +123,7 @@ class Assisant():
         print("host=%s" % host)
         new_values = {'openid': assistant.openid, 'uin': uin, 'user_name':user_name, 'nick_name':nick_name, 'online':True,\
                     'webwxuvid':cookies_dict['webwxuvid'], 'webwx_auth_ticket':cookies_dict['webwx_auth_ticket'],\
-                    'host':host, 'friend_list':friend_list, 'group_list':group_list, 'mp_list':mp_list}
+                    'host':host, 'friend_list':friend_list, 'group_list':group_list, 'mp_list':mp_list, 'icon':icon}
         close_old_connections()
         wc, created = WechatClient.objects.update_or_create(openid=assistant.openid,defaults=new_values,)
 

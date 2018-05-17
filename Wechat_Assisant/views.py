@@ -82,11 +82,13 @@ def data(request):
         year = start_of_week.isocalendar()[0]
         analyze_obj = analyze_obj_get(data['openid'], year, weeknum)
         inter_analyze_obj = analyze_obj_get('inter_user', year, weeknum)
+        wc = get_wc(openid=data['openid'])
         print('%s, %s, %s' % (year, weeknum, analyze_obj))
         if analyze_obj:
             return render(request, 'data.html',
                             {'info':json.dumps(analyze_obj.result),
-                            'inter_user':json.dumps(inter_analyze_obj.result)})
+                            'inter_user':json.dumps(inter_analyze_obj.result),
+                            'icon':json.dumps(wc.icon)})
 
     return JsonResponse({'code': '400'})
 
