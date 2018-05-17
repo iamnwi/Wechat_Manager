@@ -88,7 +88,7 @@ def data(request):
             return render(request, 'data.html',
                             {'info':json.dumps(analyze_obj.result),
                             'inter_user':json.dumps(inter_analyze_obj.result),
-                            'icon':json.dumps(wc.icon)})
+                            'icon':wc.icon})
 
     return JsonResponse({'code': '400'})
 
