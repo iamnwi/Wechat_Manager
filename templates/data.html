@@ -504,13 +504,16 @@
     draw_bar("city_chart", data, options)
   }
 
-  function set_index(data) {
+  function set_index(data, icon_data) {
     user_nick = data['user_nick']
     weeknum = data['weeknum']
     year = data['year']
     welcome_msg = '嗨, '+user_nick+',<br/>小蜜为你送来上周('+year+'年第'+weeknum+'周)的社交消息统计报告啦～<br/>请上划查看喔';
-    icon_img = '<img src="/static/imgs/mp_icon.png"></img>'
-    show_msg('icon', icon_img)
+    var img = new Image();
+    img.src = "data:image/jpeg;base64,"+ btoa(atob(icon_data));
+    img.style.height = '320px';
+    img.style.width = '320px';
+    document.getElementById("icon").appendChild(img);
     show_msg('welcome_msg', welcome_msg)
   }
 
@@ -519,8 +522,10 @@
     var data = JSON.parse(info);
     var inter = {{ inter_user|safe }};
     var inter_data = JSON.parse(inter);
+    var icon = {{ icon|safe }};
+    // console.log(icon);
 
-    set_index(data)
+    set_index(data, icon)
 
   	$('#fullpage').fullpage({
       anchors: ['indexPage', 'sexPage', 'inter_sexPage', 'cityPage', 'inter_messagePage', 'messagePage', 'groupPage', 'timePage'],

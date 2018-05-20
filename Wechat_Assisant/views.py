@@ -28,6 +28,10 @@ import threading
 import logging
 logger = logging.getLogger(__name__)
 
+# Processing images
+from PIL import Image
+import io
+
 p = Process(target=analyze, args=())
 p.start()
 
@@ -83,12 +87,21 @@ def data(request):
         analyze_obj = analyze_obj_get(data['openid'], year, weeknum)
         inter_analyze_obj = analyze_obj_get('inter_user', year, weeknum)
         wc = get_wc(openid=data['openid'])
+
+        # Resize the icon to a smaller size
+        image_data = wc.icon
+        image = Image.open(io.BytesIO(image_data))
+        image = image.resize((320, 320), Image.ANTIALIAS)
+        s_icon = io.BytesIO()
+        image.save(s_icon, format='JPEG')
+        s_icon_data = s_icon.getvalue()
+
         print('%s, %s, %s' % (year, weeknum, analyze_obj))
         if analyze_obj:
             return render(request, 'data.html',
                             {'info':json.dumps(analyze_obj.result),
                             'inter_user':json.dumps(inter_analyze_obj.result),
-                            'icon':wc.icon})
+                            'icon':json.dumps((base64.b64encode(s_icon_data)).decode('utf-8'))})
 
     return JsonResponse({'code': '400'})
 
