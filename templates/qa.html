@@ -1,0 +1,146 @@
+<html>
+<head>
+<link rel="stylesheet" type="text/css" href="/static/css/qa.css" />
+<link rel="stylesheet" type="text/css" href="/static/js/fullPage/dist/jquery.fullpage.css" />
+<link rel="stylesheet" type="text/css" href="/static/css/qa.css" />
+
+<script src="/static/js/jquery.min.js"></script>
+
+<!-- This following line is optional. Only necessary if you use the option css3:false and you want to use other easing effects rather than "linear", "swing" or "easeInOutCubic". -->
+<script src="/static/js/fullPage/vendors/jquery.easings.min.js"></script>
+
+
+<!-- This following line is only necessary in the case of using the option `scrollOverflow:true` -->
+<script type="text/javascript" src="/static/js/fullPage/vendors/scrolloverflow.min.js"></script>
+
+<script type="text/javascript" src="/static/js/fullPage/dist/jquery.fullpage.js"></script>
+
+<script type="text/javascript" src="/static/js/chartjs_2.7.2.bundle.min.js"></script>
+
+<style>
+  #welcome_msg {
+    text-align:center;
+    font-size: 200%;
+    line-height: 200%;
+    color: white;
+  }
+  #icon {
+    text-align:center;
+  }
+  .title {
+    text-align:center;
+    font-size: 300%;
+    font-weight:bold;
+    color: white;
+  }
+  .title > p {
+    display: inline-block;
+    background-color: rgba(54, 162, 235, 0.8);
+  }
+
+  .content {
+    font-size: 200%;
+    line-height: 300%;
+    text-align:center;
+    color: white;
+  }
+  .content > p {
+    text-align:center;
+  }
+  .button {
+     font-size: 120%;
+     color: white;
+     border: 1px solid rgb(255, 99, 132);
+     background-color: pink;
+     height: 100px;
+     width: 200px;
+  }
+</style>
+
+<script>
+  window.chartColors = {
+    red: 'rgb(255, 99, 132)',
+    orange: 'rgb(255, 159, 64)',
+    yellow: 'rgb(255, 205, 86)',
+    green: 'rgb(75, 192, 192)',
+    blue: 'rgb(54, 162, 235)',
+    purple: 'rgb(153, 102, 255)',
+    grey: 'rgb(201, 203, 207)',
+    a_blue: 'rgba(54, 162, 235, 0.5)',
+    a_yellow: 'rgba(255, 205, 86, 0.5)',
+    a_green: 'rgba(75, 192, 192, 0.5)',
+    a_orange: 'rgba(255, 159, 64, 0.5)',
+    a_red: 'rgba(255, 99, 132, 0.5)',
+  };
+
+  stdans = "王菊"
+  myans = ""
+  function choose(ans) {
+    console.log(ans)
+    myans = ans;
+  }
+
+  function show_msg(div_id, msg) {
+    $("#"+div_id).empty();
+    $("#"+div_id).append("<p>"+msg+"</p>");
+  }
+
+  function check_ans() {
+    msg = "你選擇了："+$('#'+myans).text()+", 正確答案是："+stdans;
+    show_msg("ans_check", msg);
+  }
+
+  $(document).ready(function() {
+
+  	$('#fullpage').fullpage({
+      anchors: ['qa', 'ans'],
+
+      afterLoad: function(anchorLink, index){
+    		var loadedSection = $(this);
+
+    		//using anchorLink
+    		if(anchorLink == 'ans'){
+          check_ans();
+    		}
+    	}
+    });
+  });
+</script>
+<head/>
+
+<body>
+  <div class="background">
+    <span></span>
+    <span></span>
+    <span></span>
+    <span></span>
+  <div id="fullpage">
+    <div class="section">
+        <div class="title">
+          <p>&nbsp;&nbsp;[ 回答吧1998! ]&nbsp;&nbsp;</p>
+        </div>
+        <div class="content">
+          <div id="q1">1. 誰是世界上最好看的人？</div>
+          <div id="q1_opts">
+            <button type="button" class="button" id="q1_A" onclick=choose("q1_A")>你</button>
+            <button type="button" class="button" id="q1_B" onclick=choose("q1_B")>我</button>
+            <button type="button" class="button" id="q1_C" onclick=choose("q1_C")>王菊</button>
+            <button type="button" class="button" id="q1_D" onclick=choose("q1_D")>IU</button>
+          </div>
+        </div>
+
+    </div>
+    <div class="section">
+      <div class="title">
+        <p>&nbsp;&nbsp;[ 來對一下答案! ]&nbsp;&nbsp;</p>
+      </div>
+      <div class="content">
+        <div id="question">1. 誰是世界上最好看的人？</div>
+        <div id="ans_check">
+        </div>
+      </div>
+    </div>
+  </div>
+  </div>
+</body>
+</html>
