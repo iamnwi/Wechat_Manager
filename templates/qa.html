@@ -75,9 +75,14 @@
 
   stdans = "王菊"
   myans = ""
+  pre=""
   function choose(ans) {
     console.log(ans)
     myans = ans;
+    if (pre != "")
+      document.getElementById(pre).style.background='pink';
+    pre = ans
+    document.getElementById(ans).style.background='rgb(54, 162, 235)';
   }
 
   function show_msg(div_id, msg) {
@@ -117,7 +122,7 @@
   <div id="fullpage">
     <div class="section">
         <div class="title">
-          <p>&nbsp;&nbsp;[ 回答吧1998! ]&nbsp;&nbsp;</p>
+          <p>&nbsp;&nbsp;[ 回答吧101! ]&nbsp;&nbsp;</p>
         </div>
         <div class="content">
           <div id="q1">1. 誰是世界上最好看的人？</div>
