@@ -8,3 +8,4 @@ Service includes
 - Analyze and generate weekly social networking quality and your online health report based on your usage of the app
 
 Implemented based on itchat package, used Django for backend development, Js+Html+Css for frontend.
+Server: Ali EC2 server
