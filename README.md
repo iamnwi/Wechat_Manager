@@ -6,3 +6,5 @@ Service includes
 - Retrieving revoked messages
 - Quoting and notifying you important messages that are related to you from hundreds of group chat messages
 - Analyze and generate weekly social networking quality and your online health report based on your usage of the app
+
+Implemented based on itchat package, used Django for backend development, Js+Html+Css for frontend.
